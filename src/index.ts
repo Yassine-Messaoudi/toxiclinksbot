@@ -17,7 +17,21 @@ import { handlePresenceUpdate } from "./events/presenceUpdate";
 import { handleUserUpdate } from "./events/userUpdate";
 
 export const prisma = new PrismaClient();
-export const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+
+// Redis — optional, gracefully handle missing REDIS_URL
+let redisInstance: Redis | null = null;
+if (process.env.REDIS_URL) {
+  redisInstance = new Redis(process.env.REDIS_URL);
+  redisInstance.on("error", (err) => {
+    console.warn("[Bot] Redis error (non-fatal):", err.message);
+  });
+  redisInstance.on("connect", () => {
+    console.log("[Bot] Redis connected");
+  });
+} else {
+  console.warn("[Bot] REDIS_URL not set — presence features disabled");
+}
+export const redis = redisInstance;
 
 const client = new Client({
   intents: [
@@ -74,6 +88,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 // Presence updates → push to Redis for live profile display
 client.on(Events.PresenceUpdate, (oldPresence, newPresence) => {
+  if (!redis) return;
   handlePresenceUpdate(oldPresence, newPresence, redis, prisma);
 });
 
@@ -98,7 +113,7 @@ client.login(token).catch((err) => {
 process.on("SIGINT", async () => {
   console.log("[Bot] Shutting down...");
   await prisma.$disconnect();
-  redis.disconnect();
+  redis?.disconnect();
   client.destroy();
   process.exit(0);
 });
