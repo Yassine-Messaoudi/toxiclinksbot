@@ -112,9 +112,10 @@ model User {
   username      String?   @unique
   displayName   String?
   bio           String?   @db.Text
-  avatarUrl     String?
-  bannerUrl     String?
-  plan          Plan      @default(FREE)
+  avatarUrl           String?
+  bannerUrl           String?
+  avatarDecorationUrl String?
+  plan                Plan      @default(FREE)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
