@@ -1,8 +1,8 @@
-import { User } from "discord.js";
+import { User, PartialUser } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 
 export async function handleUserUpdate(
-  oldUser: User,
+  oldUser: User | PartialUser,
   newUser: User,
   prisma: PrismaClient
 ) {
