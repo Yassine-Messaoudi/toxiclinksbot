@@ -144,6 +144,7 @@ model Profile {
   theme             Json          @default("{}")
   revealScreen      Json          @default("{}")
   cursorEffect      String?
+  cursorUrl         String?
   backgroundEffect  String?
   backgroundUrl     String?
   backgroundType    String?       @default("image")
