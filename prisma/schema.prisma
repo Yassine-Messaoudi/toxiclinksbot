@@ -112,6 +112,7 @@ model User {
   username      String?   @unique
   displayName   String?
   bio           String?   @db.Text
+  location      String?
   avatarUrl           String?
   bannerUrl           String?
   avatarDecorationUrl String?
@@ -142,6 +143,8 @@ model Profile {
   revealScreen      Json          @default("{}")
   cursorEffect      String?
   backgroundEffect  String?
+  backgroundUrl     String?
+  backgroundType    String?       @default("image")
   musicUrl          String?
   musicTitle        String?
   entranceAnimation String?
@@ -158,16 +161,34 @@ model Profile {
 }
 
 model Link {
-  id       String  @id @default(cuid())
-  userId   String
-  title    String
-  url      String
-  icon     String?
-  order    Int     @default(0)
-  clicks   Int     @default(0)
-  isActive Boolean @default(true)
+  id            String    @id @default(cuid())
+  userId        String
+  title         String
+  url           String
+  description   String?
+  icon          String?
+  emoji         String?
+  style         String    @default("default") // default | gradient | neon | minimal | glass | solid
+  bgColor       String?
+  textColor     String?
+  borderColor   String?
+  iconColor     String?
+  cta           String?   // Custom call-to-action text e.g. "Visit", "Buy now"
+  pinned        Boolean   @default(false)
+  nsfw          Boolean   @default(false)
+  password      String?
+  startsAt      DateTime?
+  endsAt        DateTime?
+  order         Int       @default(0)
+  clicks        Int       @default(0)
+  lastClickedAt DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, order])
 }
 
 model SocialLink {
