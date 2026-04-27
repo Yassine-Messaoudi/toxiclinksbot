@@ -2,7 +2,7 @@ import {
   ChatInputCommandInteraction, GuildMember, Interaction, TextChannel,
   EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
   AttachmentBuilder,
-  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder,
+  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder,
   MessageFlags,
   ChannelType, PermissionFlagsBits, CategoryChannel,
 } from "discord.js";
@@ -32,7 +32,10 @@ const EMOJI = {
   verified: { id: "1498458263841145032", name: "Verifiedbadgeapplication" },
   billing:  { id: "1498458208283656323", name: "purshacebilling" },
   store:    { id: "1498458184942227559", name: "store" },
+  logo:     { id: "1498466667242721390", name: "toxiclinks" },
 };
+
+const TICKET_BANNER_GIF = "https://res.cloudinary.com/db4mpxc2k/image/upload/v1777332752/toxic_skull_banner_dumql1.gif";
 
 /** Ticket categories */
 export const TICKET_CATEGORIES = [
@@ -64,10 +67,17 @@ export const ticketCommand = {
       const container = new ContainerBuilder()
         .setAccentColor(BOT_COLOR);
 
-      // Header text
+      // GIF banner at the top
+      container.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL(TICKET_BANNER_GIF)
+        )
+      );
+
+      // Header text with logo emoji
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `## ☠️ Support Center\nWelcome to **${APP_NAME}**\nSelect the option that best matches your needs.`
+          `## <:${EMOJI.logo.name}:${EMOJI.logo.id}> Support Center\nWelcome to **${APP_NAME}**\nSelect the option that best matches your needs.`
         )
       );
 
@@ -89,7 +99,7 @@ export const ticketCommand = {
               .setCustomId(`ticket_cat_${cat.value}`)
               .setLabel(cat.label)
               .setEmoji(cat.emoji)
-              .setStyle(ButtonStyle.Primary)
+              .setStyle(ButtonStyle.Success)
           );
 
         container.addSectionComponents(section);
