@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, GuildMember, Interaction, TextChannel, EmbedBuilder } from "discord.js";
 import { isStaff } from "../utils/permissions";
 import { errorEmbed, successEmbed } from "../utils/embeds";
-import { BOT_COLOR, CHANNELS, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL } from "../config";
+import { BOT_COLOR, CHANNELS, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
 
 export const announceCommand = {
   name: "announce",
@@ -33,15 +33,24 @@ export const announceCommand = {
 
     const embed = new EmbedBuilder()
       .setColor(BOT_COLOR)
-      .setTitle(`📢 ${title}`)
-      .setDescription(message)
+      .setAuthor({
+        name: `${APP_NAME} — Announcement`,
+        iconURL: LOGO_URL,
+      })
+      .setTitle(`☠️  ${title}`)
+      .setDescription([
+        `*${LINE}*`,
+        "",
+        message,
+        "",
+        `*${LINE}*`,
+        "",
+        `> ⚡ *Announced by* **${cmd.user.tag}**`,
+      ].join("\n"))
       .setThumbnail(SKULL_GIF_URL)
-      .setFooter({ text: `Announced by ${cmd.user.tag} • ${BOT_FOOTER}`, iconURL: LOGO_URL })
+      .setImage(SKULL_GIF_URL)
+      .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
       .setTimestamp();
-
-    if (cmd.user.displayAvatarURL()) {
-      embed.setAuthor({ name: cmd.user.tag, iconURL: cmd.user.displayAvatarURL() });
-    }
 
     await channel.send({
       content: ping ? "@everyone" : undefined,

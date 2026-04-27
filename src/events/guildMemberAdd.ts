@@ -1,5 +1,5 @@
-import { GuildMember, Client, EmbedBuilder, TextChannel } from "discord.js";
-import { CHANNELS, ROLES, BOT_COLOR, APP_URL, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL } from "../config";
+import { GuildMember, Client, EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { CHANNELS, ROLES, BOT_COLOR, APP_URL, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
 import { logText } from "../utils/logger";
 
 export async function handleGuildMemberAdd(member: GuildMember, client: Client) {
@@ -21,29 +21,55 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
 
   const memberCount = member.guild.memberCount;
   const ordinal = getOrdinal(memberCount);
+  const createdDays = Math.floor((Date.now() - member.user.createdTimestamp) / 86400000);
 
   const embed = new EmbedBuilder()
     .setColor(BOT_COLOR)
-    .setTitle("Welcome to ToxicLinks! 🎉")
+    .setAuthor({
+      name: `${APP_NAME} — Welcome System`,
+      iconURL: LOGO_URL,
+    })
+    .setTitle(`Welcome, ${member.user.displayName}! ☠️`)
     .setDescription([
-      `Hey ${member}, welcome to the server!`,
+      `> ${member} just joined the **toxic** side.`,
       "",
-      `You are the **${memberCount.toLocaleString()}${ordinal}** member!`,
+      `\`\`\`ansi`,
+      `\u001b[0;32m╔══════════════════════════════════════╗`,
+      `\u001b[0;32m║  \u001b[1;32m⚡ MEMBER #${memberCount.toLocaleString()}${ordinal}\u001b[0;32m`,
+      `\u001b[0;32m║  \u001b[0;37mAccount Age: ${createdDays} days`,
+      `\u001b[0;32m╚══════════════════════════════════════╝`,
+      `\`\`\``,
       "",
-      `🔗 Create your profile at **[toxiclinks.gg](${APP_URL})**`,
-      `📜 Check out <#${CHANNELS.RULES || "rules"}> to get started`,
-      `💬 Say hi in <#${CHANNELS.CHAT || "chat"}>`,
+      `🔗 **Create your profile** → **[toxiclinks.xyz](${APP_URL})**`,
+      `📜 **Read the rules** → ${CHANNELS.RULES ? `<#${CHANNELS.RULES}>` : "#rules"}`,
+      `💬 **Start chatting** → ${CHANNELS.CHAT ? `<#${CHANNELS.CHAT}>` : "#chat"}`,
+      `🎫 **Need help?** → ${CHANNELS.TICKET_SUPPORT ? `<#${CHANNELS.TICKET_SUPPORT}>` : "#support"}`,
+      "",
+      `*${LINE}*`,
     ].join("\n"))
-    .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
+    .setThumbnail(member.user.displayAvatarURL({ size: 512 }))
     .setImage(SKULL_GIF_URL)
-    .setFooter({ text: `Member #${memberCount} • ${BOT_FOOTER}`, iconURL: LOGO_URL })
+    .setFooter({ text: `${memberCount.toLocaleString()} members • ${BOT_FOOTER}`, iconURL: LOGO_URL })
     .setTimestamp();
 
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setLabel("Create Profile")
+      .setURL(`${APP_URL}/auth/signin`)
+      .setStyle(ButtonStyle.Link)
+      .setEmoji("☠️"),
+    new ButtonBuilder()
+      .setLabel("Website")
+      .setURL(APP_URL)
+      .setStyle(ButtonStyle.Link)
+      .setEmoji("🔗"),
+  );
+
   try {
-    await channel.send({ content: `${member}`, embeds: [embed] });
+    await channel.send({ content: `${member}`, embeds: [embed], components: [row] });
   } catch {}
 
-  await logText(`👋 **${member.user.tag}** joined the server (${memberCount} members)`);
+  await logText(`☠️ **${member.user.tag}** joined the server (${memberCount} members)`);
 }
 
 function getOrdinal(n: number): string {

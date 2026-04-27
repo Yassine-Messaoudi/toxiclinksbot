@@ -4,15 +4,23 @@
  */
 
 export const BOT_COLOR = 0x39ff14; // Toxic green
-export const ERROR_COLOR = 0xef4444;
+export const TOXIC_DARK = 0x0d1117; // Dark background
+export const TOXIC_GLOW = 0x00ff88; // Glow green
+export const ERROR_COLOR = 0xff3333;
 export const WARN_COLOR = 0xfbbf24;
-export const SUCCESS_COLOR = 0x22c55e;
-export const INFO_COLOR = 0x3b82f6;
+export const SUCCESS_COLOR = 0x39ff14;
+export const INFO_COLOR = 0x00d4ff;
 export const PREMIUM_COLOR = 0xa855f7;
+export const GOODBYE_COLOR = 0x8b0000;
 
 export const APP_URL = process.env.APP_URL || "https://toxiclinks.gg";
 export const APP_NAME = "ToxicLinks";
-export const BOT_FOOTER = "ToxicLinks • toxiclinks.gg";
+export const BOT_FOOTER = "⚡ ToxicLinks • toxiclinks.xyz";
+
+/** Decorative line separators for embed descriptions */
+export const LINE = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
+export const LINE_SHORT = "━━━━━━━━━━━━━━━━━━━━";
+export const TOXIC_BAR = "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰";
 
 /** Branding images — used in embeds. Falls back to GitHub raw if APP_URL isn't set. */
 export const LOGO_URL = `${process.env.APP_URL || "https://toxiclinks.gg"}/logo.png`;

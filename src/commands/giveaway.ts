@@ -4,7 +4,7 @@ import {
 } from "discord.js";
 import { isStaff } from "../utils/permissions";
 import { errorEmbed, successEmbed } from "../utils/embeds";
-import { BOT_COLOR, CHANNELS, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL } from "../config";
+import { BOT_COLOR, CHANNELS, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
 
 /** In-memory giveaway store (production would use DB/Redis) */
 export const activeGiveaways = new Map<string, {
@@ -60,18 +60,28 @@ export const giveawayCommand = {
 
     const embed = new EmbedBuilder()
       .setColor(BOT_COLOR)
-      .setTitle("🎉 GIVEAWAY 🎉")
+      .setAuthor({ name: `${APP_NAME} — Giveaway`, iconURL: LOGO_URL })
+      .setTitle("☠️  GIVEAWAY")
       .setDescription([
-        `**${prize}**`,
+        `*${LINE}*`,
         "",
-        `> 🏆 **Winners:** ${winners}`,
-        `> ⏰ **Ends:** <t:${Math.floor(endsAt / 1000)}:R>`,
-        `> 👤 **Host:** ${cmd.user}`,
+        `> 🎁 **Prize:** ${prize}`,
         "",
-        "Click the button below to enter!",
+        "```ansi",
+        "\u001b[0;32m╔══════════════════════════════════╗",
+        `\u001b[0;32m║  \u001b[1;32m🏆 Winners: \u001b[0;37m${winners}`,
+        `\u001b[0;32m║  \u001b[1;32m⏰ Ends:    \u001b[0;37m<t:${Math.floor(endsAt / 1000)}:R>`,
+        `\u001b[0;32m║  \u001b[1;32m👤 Host:   \u001b[0;37m${cmd.user.tag}`,
+        "\u001b[0;32m╚══════════════════════════════════╝",
+        "```",
+        "",
+        "> ⚡ Click the button below to **enter**!",
+        "",
+        `*${LINE}*`,
       ].join("\n"))
       .setThumbnail(SKULL_GIF_URL)
-      .setFooter({ text: `${winners} winner(s) \u2022 ${BOT_FOOTER}`, iconURL: LOGO_URL })
+      .setImage(SKULL_GIF_URL)
+      .setFooter({ text: `${winners} winner(s) • ${BOT_FOOTER}`, iconURL: LOGO_URL })
       .setTimestamp(new Date(endsAt));
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -116,14 +126,24 @@ export const giveawayCommand = {
 
       const endEmbed = new EmbedBuilder()
         .setColor(0xfbbf24)
-        .setTitle("🎉 GIVEAWAY ENDED 🎉")
+        .setAuthor({ name: `${APP_NAME} — Giveaway Ended`, iconURL: LOGO_URL })
+        .setTitle("☠️  GIVEAWAY ENDED")
         .setDescription([
-          `**${giveaway.prize}**`,
+          `*${LINE}*`,
           "",
-          `> 🏆 **Winner(s):** ${winnerMentions}`,
-          `> 👥 **Entries:** ${entriesArr.length}`,
-          `> 👤 **Host:** <@${giveaway.hostId}>`,
+          `> 🎁 **Prize:** ${giveaway.prize}`,
+          "",
+          "```ansi",
+          "\u001b[0;33m╔══════════════════════════════════╗",
+          `\u001b[0;33m║  \u001b[1;33m🏆 Winner(s): \u001b[0;37m${winnerMentions}`,
+          `\u001b[0;33m║  \u001b[1;33m👥 Entries:   \u001b[0;37m${entriesArr.length}`,
+          `\u001b[0;33m║  \u001b[1;33m👤 Host:     \u001b[0;37m<@${giveaway.hostId}>`,
+          "\u001b[0;33m╚══════════════════════════════════╝",
+          "```",
+          "",
+          `*${LINE}*`,
         ].join("\n"))
+        .setThumbnail(SKULL_GIF_URL)
         .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
         .setTimestamp();
 

@@ -1,5 +1,5 @@
-import { ChatInputCommandInteraction, EmbedBuilder, Interaction } from "discord.js";
-import { BOT_COLOR, APP_NAME, APP_URL, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL } from "../config";
+import { ChatInputCommandInteraction, EmbedBuilder, Interaction, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { BOT_COLOR, APP_NAME, APP_URL, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE } from "../config";
 
 export const helpCommand = {
   name: "help",
@@ -9,61 +9,99 @@ export const helpCommand = {
 
     const embed = new EmbedBuilder()
       .setColor(BOT_COLOR)
-      .setTitle(`${APP_NAME} Bot — Commands`)
-      .setDescription(`Your all-in-one bot for **${APP_NAME}**. Manage your profile, view stats, and more — right from Discord.`)
+      .setAuthor({ name: `${APP_NAME} — Command Center`, iconURL: LOGO_URL })
+      .setTitle("☠️  Bot Commands")
+      .setDescription([
+        `*${LINE}*`,
+        "",
+        `> Your all-in-one bot for **${APP_NAME}**`,
+        "> Manage your profile, view stats, and more — right from Discord.",
+        "",
+        "```ansi",
+        "\u001b[0;32m╔══════════════════════════════════════╗",
+        "\u001b[0;32m║        \u001b[1;32m⚡ COMMAND LIST ⚡\u001b[0;32m            ║",
+        "\u001b[0;32m╚══════════════════════════════════════╝",
+        "```",
+      ].join("\n"))
       .addFields(
         {
-          name: "👤 Profile",
+          name: "☠️ Profile",
           value: [
-            "`/profile [user]` — View a user's profile card",
-            "`/setbio <text>` — Update your bio from Discord",
-            "`/lookup <username>` — Search for a profile",
+            "> `/profile [user]` — View a profile card",
+            "> `/setbio <text>` — Update your bio",
+            "> `/lookup <username>` — Search a profile",
           ].join("\n"),
+          inline: true,
         },
         {
           name: "📊 Stats",
           value: [
-            "`/analytics` — View your profile analytics",
-            "`/leaderboard` — Top profiles by views",
-            "`/serverinfo` — Server statistics",
-            "`/userinfo [user]` — User information",
+            "> `/analytics` — Profile analytics",
+            "> `/leaderboard` — Top profiles",
+            "> `/serverinfo` — Server stats",
+            "> `/userinfo [user]` — User info",
           ].join("\n"),
+          inline: true,
         },
+        { name: "\u200b", value: "\u200b", inline: false },
         {
-          name: "🎉 Community",
+          name: "⚡ Community",
           value: [
-            "`/suggest <idea>` — Submit a suggestion",
-            "`/poll <question>` — Create a poll",
-            "`/ticket` — Open a support ticket",
+            "> `/suggest <idea>` — Submit idea",
+            "> `/poll <question>` — Create a poll",
+            "> `/ticket` — Open support ticket",
           ].join("\n"),
+          inline: true,
         },
         {
           name: "🛡️ Moderation",
           value: [
-            "`/warn <user> [reason]` — Warn a user",
-            "`/mute <user> <duration> [reason]` — Timeout a user",
-            "`/kick <user> [reason]` — Kick a user",
-            "`/ban <user> [reason]` — Ban a user",
-            "`/purge <amount>` — Bulk delete messages",
+            "> `/warn <user>` — Warn a user",
+            "> `/mute <user> <dur>` — Timeout",
+            "> `/kick <user>` — Kick a user",
+            "> `/ban <user>` — Ban a user",
+            "> `/purge <amount>` — Bulk delete",
           ].join("\n"),
+          inline: true,
         },
+        { name: "\u200b", value: "\u200b", inline: false },
         {
-          name: "⚙️ Staff",
+          name: "🔧 Staff",
           value: [
-            "`/announce <message>` — Post an announcement",
-            "`/giveaway <prize> <duration> <winners>` — Start a giveaway",
-            "`/embed` — Build a custom embed",
+            "> `/announce <msg>` — Announcement",
+            "> `/giveaway <prize>` — Start giveaway",
+            "> `/embed` — Custom embed builder",
           ].join("\n"),
+          inline: true,
         },
         {
-          name: "🔗 Links",
-          value: `[Website](${APP_URL}) • [Dashboard](${APP_URL}/dashboard) • [Discord](https://discord.gg/toxiclinks)`,
+          name: "🔗 Quick Links",
+          value: [
+            `> [☠️ Website](${APP_URL})`,
+            `> [⚡ Dashboard](${APP_URL}/dashboard)`,
+            `> [💬 Discord](https://discord.gg/toxiclinks)`,
+          ].join("\n"),
+          inline: true,
         },
       )
       .setThumbnail(SKULL_GIF_URL)
+      .setImage(SKULL_GIF_URL)
       .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
       .setTimestamp();
 
-    await cmd.reply({ embeds: [embed] });
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setLabel("Website")
+        .setURL(APP_URL)
+        .setStyle(ButtonStyle.Link)
+        .setEmoji("☠️"),
+      new ButtonBuilder()
+        .setLabel("Dashboard")
+        .setURL(`${APP_URL}/dashboard`)
+        .setStyle(ButtonStyle.Link)
+        .setEmoji("⚡"),
+    );
+
+    await cmd.reply({ embeds: [embed], components: [row] });
   },
 };

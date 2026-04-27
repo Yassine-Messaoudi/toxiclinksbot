@@ -1,10 +1,12 @@
 import { EmbedBuilder, User } from "discord.js";
-import { BOT_COLOR, ERROR_COLOR, WARN_COLOR, SUCCESS_COLOR, INFO_COLOR, BOT_FOOTER, APP_NAME, LOGO_URL } from "../config";
+import { BOT_COLOR, ERROR_COLOR, WARN_COLOR, SUCCESS_COLOR, INFO_COLOR, BOT_FOOTER, APP_NAME, LOGO_URL, SKULL_GIF_URL, LINE_SHORT } from "../config";
 
-/** Branded embed with toxic green accent + logo */
+/** Branded embed with toxic green accent + logo + skull */
 export function toxicEmbed() {
   return new EmbedBuilder()
     .setColor(BOT_COLOR)
+    .setAuthor({ name: `${APP_NAME}`, iconURL: LOGO_URL })
+    .setThumbnail(SKULL_GIF_URL)
     .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
     .setTimestamp();
 }
@@ -13,7 +15,12 @@ export function toxicEmbed() {
 export function errorEmbed(message: string) {
   return new EmbedBuilder()
     .setColor(ERROR_COLOR)
-    .setDescription(`❌ ${message}`)
+    .setAuthor({ name: `${APP_NAME} — Error`, iconURL: LOGO_URL })
+    .setDescription([
+      "```ansi",
+      `\u001b[0;31m✖ \u001b[1;31m${message}`,
+      "```",
+    ].join("\n"))
     .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
     .setTimestamp();
 }
@@ -22,7 +29,12 @@ export function errorEmbed(message: string) {
 export function warnEmbed(message: string) {
   return new EmbedBuilder()
     .setColor(WARN_COLOR)
-    .setDescription(`⚠️ ${message}`)
+    .setAuthor({ name: `${APP_NAME} — Warning`, iconURL: LOGO_URL })
+    .setDescription([
+      "```ansi",
+      `\u001b[0;33m⚠ \u001b[1;33m${message}`,
+      "```",
+    ].join("\n"))
     .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
     .setTimestamp();
 }
@@ -31,7 +43,12 @@ export function warnEmbed(message: string) {
 export function successEmbed(message: string) {
   return new EmbedBuilder()
     .setColor(SUCCESS_COLOR)
-    .setDescription(`✅ ${message}`)
+    .setAuthor({ name: `${APP_NAME}`, iconURL: LOGO_URL })
+    .setDescription([
+      "```ansi",
+      `\u001b[0;32m✔ \u001b[1;32m${message}`,
+      "```",
+    ].join("\n"))
     .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
     .setTimestamp();
 }
@@ -40,8 +57,16 @@ export function successEmbed(message: string) {
 export function infoEmbed(title: string, description: string) {
   return new EmbedBuilder()
     .setColor(INFO_COLOR)
-    .setTitle(title)
-    .setDescription(description)
+    .setAuthor({ name: `${APP_NAME} — Info`, iconURL: LOGO_URL })
+    .setTitle(`☠️  ${title}`)
+    .setDescription([
+      `*${LINE_SHORT}*`,
+      "",
+      description,
+      "",
+      `*${LINE_SHORT}*`,
+    ].join("\n"))
+    .setThumbnail(SKULL_GIF_URL)
     .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
     .setTimestamp();
 }
@@ -55,27 +80,39 @@ export function modLogEmbed(opts: {
   duration?: string;
   extra?: string;
 }) {
+  const color =
+    opts.action === "BAN" ? ERROR_COLOR :
+    opts.action === "KICK" ? ERROR_COLOR :
+    opts.action === "MUTE" ? WARN_COLOR :
+    opts.action === "WARN" ? WARN_COLOR :
+    opts.action === "UNMUTE" ? SUCCESS_COLOR :
+    opts.action === "UNBAN" ? SUCCESS_COLOR :
+    INFO_COLOR;
+
+  const ansiColor =
+    (opts.action === "BAN" || opts.action === "KICK") ? "31" :
+    (opts.action === "MUTE" || opts.action === "WARN") ? "33" :
+    (opts.action === "UNMUTE" || opts.action === "UNBAN") ? "32" : "36";
+
   const embed = new EmbedBuilder()
-    .setColor(
-      opts.action === "BAN" ? ERROR_COLOR :
-      opts.action === "KICK" ? ERROR_COLOR :
-      opts.action === "MUTE" ? WARN_COLOR :
-      opts.action === "WARN" ? WARN_COLOR :
-      opts.action === "UNMUTE" ? SUCCESS_COLOR :
-      opts.action === "UNBAN" ? SUCCESS_COLOR :
-      INFO_COLOR
-    )
-    .setTitle(`${actionEmoji(opts.action)} ${opts.action}`)
-    .addFields(
-      { name: "User", value: `${opts.target.tag} (${opts.target.id})`, inline: true },
-      { name: "Moderator", value: `${opts.moderator.tag}`, inline: true },
-    )
+    .setColor(color)
+    .setAuthor({ name: `${APP_NAME} — Moderation`, iconURL: LOGO_URL })
+    .setTitle(`${actionEmoji(opts.action)}  ${opts.action}`)
+    .setDescription([
+      "```ansi",
+      `\u001b[0;${ansiColor}m╔══════════════════════════════╗`,
+      `\u001b[0;${ansiColor}m║  \u001b[1;${ansiColor}m${opts.action}\u001b[0;${ansiColor}m`,
+      `\u001b[0;${ansiColor}m║  \u001b[0;37mUser: ${opts.target.tag}`,
+      `\u001b[0;${ansiColor}m║  \u001b[0;37mMod:  ${opts.moderator.tag}`,
+      opts.reason ? `\u001b[0;${ansiColor}m║  \u001b[0;37mReason: ${opts.reason}` : null,
+      opts.duration ? `\u001b[0;${ansiColor}m║  \u001b[0;37mDuration: ${opts.duration}` : null,
+      `\u001b[0;${ansiColor}m╚══════════════════════════════╝`,
+      "```",
+    ].filter(Boolean).join("\n"))
     .setThumbnail(opts.target.displayAvatarURL())
     .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
     .setTimestamp();
 
-  if (opts.reason) embed.addFields({ name: "Reason", value: opts.reason });
-  if (opts.duration) embed.addFields({ name: "Duration", value: opts.duration, inline: true });
   if (opts.extra) embed.addFields({ name: "Details", value: opts.extra });
 
   return embed;

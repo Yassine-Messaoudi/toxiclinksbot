@@ -3,7 +3,7 @@ import {
   EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
   ChannelType, PermissionFlagsBits, CategoryChannel,
 } from "discord.js";
-import { BOT_COLOR, CHANNELS, ROLES, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL } from "../config";
+import { BOT_COLOR, CHANNELS, ROLES, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
 import { errorEmbed, successEmbed } from "../utils/embeds";
 import { logToChannel } from "../utils/logger";
 import { toxicEmbed } from "../utils/embeds";
@@ -26,18 +26,31 @@ export const ticketCommand = {
 
       const embed = new EmbedBuilder()
         .setColor(BOT_COLOR)
-        .setTitle("🎫 Support Tickets")
+        .setAuthor({
+          name: `${APP_NAME} — Ticket System`,
+          iconURL: LOGO_URL,
+        })
+        .setTitle("☠️  Support Tickets")
         .setDescription([
-          "Need help? Click the button below to open a support ticket.",
+          `*${LINE}*`,
           "",
-          "**Please include:**",
-          "• A clear description of your issue",
-          "• Any relevant screenshots",
-          "• Your ToxicLinks username (if applicable)",
+          "> Need help? Click the button below to open a **private support ticket**.",
           "",
-          "Our staff team will respond as soon as possible.",
+          "```ansi",
+          "\u001b[0;32m╔══════════════════════════════════╗",
+          "\u001b[0;32m║  \u001b[1;32m📋 PLEASE INCLUDE:\u001b[0;32m",
+          "\u001b[0;32m║  \u001b[0;37m• Clear description of issue",
+          "\u001b[0;32m║  \u001b[0;37m• Relevant screenshots",
+          "\u001b[0;32m║  \u001b[0;37m• Your ToxicLinks username",
+          "\u001b[0;32m╚══════════════════════════════════╝",
+          "```",
+          "",
+          "> ⚡ Our staff team will respond **as soon as possible**.",
+          "",
+          `*${LINE}*`,
         ].join("\n"))
         .setThumbnail(SKULL_GIF_URL)
+        .setImage(SKULL_GIF_URL)
         .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
         .setTimestamp();
 
@@ -94,16 +107,28 @@ export async function createTicket(guild: any, userId: string, username: string)
   // Send welcome message
   const embed = new EmbedBuilder()
     .setColor(BOT_COLOR)
-    .setTitle("🎫 Ticket Opened")
+    .setAuthor({ name: `${APP_NAME} — Ticket`, iconURL: LOGO_URL })
+    .setTitle("☠️  Ticket Opened")
     .setDescription([
-      `Hey <@${userId}>, thanks for reaching out!`,
+      `*${LINE}*`,
       "",
-      "A staff member will be with you shortly.",
-      "In the meantime, please describe your issue in detail.",
+      `> Hey <@${userId}>, thanks for reaching out!`,
       "",
-      "**Click the button below to close this ticket when resolved.**",
+      "```ansi",
+      "\u001b[0;32m╔══════════════════════════════════╗",
+      "\u001b[0;32m║  \u001b[1;32m⚡ HOW TO GET HELP:\u001b[0;32m",
+      "\u001b[0;32m║  \u001b[0;37m1. Describe your issue below",
+      "\u001b[0;32m║  \u001b[0;37m2. Attach any screenshots",
+      "\u001b[0;32m║  \u001b[0;37m3. Wait for a staff response",
+      "\u001b[0;32m╚══════════════════════════════════╝",
+      "```",
+      "",
+      "> 🔒 Click **Close Ticket** when your issue is resolved.",
+      "",
+      `*${LINE}*`,
     ].join("\n"))
-    .setFooter({ text: BOT_FOOTER })
+    .setThumbnail(SKULL_GIF_URL)
+    .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
     .setTimestamp();
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(

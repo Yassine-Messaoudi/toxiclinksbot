@@ -61,9 +61,11 @@ enum UserRole {
 
 enum ProfileLayout {
   STANDARD
+  CLASSIC
   CARD
   GRID
   MINIMAL
+  BOXES
 }
 
 enum SocialPlatform {

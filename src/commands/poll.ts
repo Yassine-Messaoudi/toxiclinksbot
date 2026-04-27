@@ -2,7 +2,7 @@ import {
   ChatInputCommandInteraction, Interaction, EmbedBuilder,
   ActionRowBuilder, ButtonBuilder, ButtonStyle,
 } from "discord.js";
-import { BOT_COLOR, BOT_FOOTER, LOGO_URL } from "../config";
+import { BOT_COLOR, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE_SHORT, APP_NAME } from "../config";
 
 /** In-memory poll store */
 export const activePolls = new Map<string, {
@@ -29,13 +29,23 @@ export const pollCommand = {
 
     const options = [opt1, opt2, opt3, opt4, opt5].filter(Boolean) as string[];
 
-    const description = options.map((opt, i) => `${OPTION_EMOJIS[i]} **${opt}** — 0 votes`).join("\n");
+    const description = options.map((opt, i) => `> ${OPTION_EMOJIS[i]} **${opt}** — \`0 votes\``).join("\n");
 
     const embed = new EmbedBuilder()
       .setColor(BOT_COLOR)
-      .setTitle(`📊 ${question}`)
-      .setDescription(description)
-      .setFooter({ text: `Poll by ${cmd.user.tag} \u2022 0 total votes \u2022 ${BOT_FOOTER}`, iconURL: LOGO_URL })
+      .setAuthor({ name: `${APP_NAME} — Poll`, iconURL: LOGO_URL })
+      .setTitle(`☠️  ${question}`)
+      .setDescription([
+        `*${LINE_SHORT}*`,
+        "",
+        description,
+        "",
+        `*${LINE_SHORT}*`,
+        "",
+        `> ⚡ *Poll by* **${cmd.user.tag}** • \`0 total votes\``,
+      ].join("\n"))
+      .setThumbnail(SKULL_GIF_URL)
+      .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
       .setTimestamp();
 
     const rows: ActionRowBuilder<ButtonBuilder>[] = [];
