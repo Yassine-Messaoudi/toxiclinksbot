@@ -1,12 +1,36 @@
 import {
   ChatInputCommandInteraction, GuildMember, Interaction, TextChannel,
   EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
+  StringSelectMenuBuilder, StringSelectMenuOptionBuilder,
+  AttachmentBuilder,
   ChannelType, PermissionFlagsBits, CategoryChannel,
 } from "discord.js";
+import path from "path";
 import { BOT_COLOR, CHANNELS, ROLES, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
 import { errorEmbed, successEmbed } from "../utils/embeds";
 import { logToChannel } from "../utils/logger";
 import { toxicEmbed } from "../utils/embeds";
+
+/** Path to img folder */
+const IMG_DIR = path.join(__dirname, "..", "..", "img");
+
+/** Map category → image file */
+const CATEGORY_IMAGES: Record<string, string> = {
+  support:  "Support.png",
+  report:   "Support.png",
+  account:  "account recovery.png",
+  verified: "Verified badge application.png",
+  billing:  "purshacebilling.png",
+};
+
+/** Ticket categories shown in the dropdown */
+export const TICKET_CATEGORIES = [
+  { value: "support",  label: "Support",                    description: "Get help with general questions or issues.",     emoji: "⚡",  question: "Have a general question or need help?" },
+  { value: "report",   label: "Report Profile",             description: "Report a user profile for review.",             emoji: "🛡️", question: "Need to report a user profile?" },
+  { value: "account",  label: "Account Recovery",           description: "Recover access to your account.",               emoji: "🔑",  question: "Lost access to your account?" },
+  { value: "verified", label: "Verified Badge Application", description: "Apply for a verified badge on your profile.",   emoji: "☠️",  question: "Want to apply for a verified badge?" },
+  { value: "billing",  label: "Purchase / Billing",         description: "Get help with product purchases and invoices.", emoji: "💳",  question: "Have a question about purchases or billing?" },
+];
 
 export const ticketCommand = {
   name: "ticket",
@@ -17,51 +41,62 @@ export const ticketCommand = {
     const sub = cmd.options.getSubcommand();
 
     if (sub === "panel") {
-      // Staff only: send a ticket panel embed with a button
+      // Staff only: send a ticket panel embed with a select menu
       const member = cmd.member as GuildMember;
       if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         await cmd.reply({ embeds: [errorEmbed("You need Manage Server permission.")], ephemeral: true });
         return;
       }
 
+      const bannerFile = new AttachmentBuilder(path.join(IMG_DIR, "Support.png"), { name: "support_banner.png" });
+
+      const categoryList = TICKET_CATEGORIES.map(cat =>
+        `**${cat.question}**\nPress **${cat.label}** to open the matching ticket flow.`
+      ).join("\n\n");
+
       const embed = new EmbedBuilder()
         .setColor(BOT_COLOR)
-        .setAuthor({
-          name: `${APP_NAME} — Ticket System`,
-          iconURL: LOGO_URL,
-        })
-        .setTitle("☠️  Support Tickets")
+        .setAuthor({ name: `☠️ ${APP_NAME}`, iconURL: LOGO_URL })
+        .setTitle("Support Center")
         .setDescription([
-          `*${LINE}*`,
-          "",
-          "> Need help? Click the button below to open a **private support ticket**.",
-          "",
-          "```ansi",
-          "\u001b[0;32m╔══════════════════════════════════╗",
-          "\u001b[0;32m║  \u001b[1;32m📋 PLEASE INCLUDE:\u001b[0;32m",
-          "\u001b[0;32m║  \u001b[0;37m• Clear description of issue",
-          "\u001b[0;32m║  \u001b[0;37m• Relevant screenshots",
-          "\u001b[0;32m║  \u001b[0;37m• Your ToxicLinks username",
-          "\u001b[0;32m╚══════════════════════════════════╝",
-          "```",
-          "",
-          "> ⚡ Our staff team will respond **as soon as possible**.",
-          "",
-          `*${LINE}*`,
+          `Welcome to **${APP_NAME}**`,
+          "Select the option that best matches your needs.",
         ].join("\n"))
-        .setThumbnail(SKULL_GIF_URL)
-        .setImage(SKULL_GIF_URL)
+        .setImage("attachment://support_banner.png")
         .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
         .setTimestamp();
 
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId("ticket_create")
-          .setLabel("📩 Open Ticket")
-          .setStyle(ButtonStyle.Success),
-      );
+      const detailEmbed = new EmbedBuilder()
+        .setColor(BOT_COLOR)
+        .setDescription([
+          categoryList,
+          "",
+          `*${LINE}*`,
+          "",
+          `> 📬 Our support team usually responds within **5–30 minutes**.`,
+          "> We are currently **not looking** for staff, please do not open tickets for staff applications.",
+        ].join("\n"));
 
-      await (cmd.channel as TextChannel).send({ embeds: [embed], components: [row] });
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId("ticket_category")
+        .setPlaceholder("Select an option")
+        .addOptions(
+          TICKET_CATEGORIES.map(cat =>
+            new StringSelectMenuOptionBuilder()
+              .setValue(cat.value)
+              .setLabel(cat.label)
+              .setDescription(cat.description)
+              .setEmoji(cat.emoji)
+          )
+        );
+
+      const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+
+      await (cmd.channel as TextChannel).send({
+        embeds: [embed, detailEmbed],
+        components: [row],
+        files: [bannerFile],
+      });
       await cmd.reply({ embeds: [successEmbed("Ticket panel sent!")], ephemeral: true });
       return;
     }
@@ -74,7 +109,7 @@ export const ticketCommand = {
 };
 
 /** Create a new ticket channel */
-export async function createTicket(guild: any, userId: string, username: string) {
+export async function createTicket(guild: any, userId: string, username: string, category?: string) {
   // Check for existing ticket
   const existing = guild.channels.cache.find(
     (c: any) => c.name === `ticket-${username.toLowerCase().slice(0, 20)}` && c.type === ChannelType.GuildText
@@ -82,7 +117,7 @@ export async function createTicket(guild: any, userId: string, username: string)
   if (existing) return { channel: existing, alreadyExists: true };
 
   // Find or create ticket category
-  let category = guild.channels.cache.find(
+  let discordCategory = guild.channels.cache.find(
     (c: any) => c.type === ChannelType.GuildCategory && c.name.toLowerCase().includes("ticket")
   ) as CategoryChannel | undefined;
 
@@ -96,37 +131,43 @@ export async function createTicket(guild: any, userId: string, username: string)
     permOverwrites.push({ id: staffRoleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages] });
   }
 
+  const catInfo = TICKET_CATEGORIES.find(c => c.value === category);
+  const catLabel = catInfo?.label || "Support";
+  const catEmoji = catInfo?.emoji || "⚡";
+  const catImageFile = CATEGORY_IMAGES[category || "support"] || "Support.png";
+
+  const bannerAttachment = new AttachmentBuilder(path.join(IMG_DIR, catImageFile), { name: "ticket_banner.png" });
+
   const channel = await guild.channels.create({
     name: `ticket-${username.toLowerCase().slice(0, 20)}`,
     type: ChannelType.GuildText,
-    parent: category?.id || undefined,
+    parent: discordCategory?.id || undefined,
     permissionOverwrites: permOverwrites,
-    topic: `Support ticket for ${username} (${userId})`,
+    topic: `${catLabel} ticket for ${username} (${userId})`,
   });
 
   // Send welcome message
   const embed = new EmbedBuilder()
     .setColor(BOT_COLOR)
-    .setAuthor({ name: `${APP_NAME} — Ticket`, iconURL: LOGO_URL })
-    .setTitle("☠️  Ticket Opened")
+    .setAuthor({ name: `${APP_NAME} — ${catLabel}`, iconURL: LOGO_URL })
+    .setTitle(`${catEmoji}  Ticket Opened`)
     .setDescription([
-      `*${LINE}*`,
+      `Hey <@${userId}>, thanks for reaching out!`,
       "",
-      `> Hey <@${userId}>, thanks for reaching out!`,
-      "",
-      "```ansi",
-      "\u001b[0;32m╔══════════════════════════════════╗",
-      "\u001b[0;32m║  \u001b[1;32m⚡ HOW TO GET HELP:\u001b[0;32m",
-      "\u001b[0;32m║  \u001b[0;37m1. Describe your issue below",
-      "\u001b[0;32m║  \u001b[0;37m2. Attach any screenshots",
-      "\u001b[0;32m║  \u001b[0;37m3. Wait for a staff response",
-      "\u001b[0;32m╚══════════════════════════════════╝",
-      "```",
-      "",
-      "> 🔒 Click **Close Ticket** when your issue is resolved.",
+      `> **Category:** ${catEmoji} ${catLabel}`,
       "",
       `*${LINE}*`,
+      "",
+      `**How to get help:**`,
+      `> 1. Describe your issue below`,
+      `> 2. Attach any relevant screenshots`,
+      `> 3. Wait for a staff member to respond`,
+      "",
+      `*${LINE}*`,
+      "",
+      `🔒 Click **Close Ticket** when your issue is resolved.`,
     ].join("\n"))
+    .setImage("attachment://ticket_banner.png")
     .setThumbnail(SKULL_GIF_URL)
     .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
     .setTimestamp();
@@ -142,12 +183,17 @@ export async function createTicket(guild: any, userId: string, username: string)
       .setStyle(ButtonStyle.Primary),
   );
 
-  await channel.send({ content: `<@${userId}>${staffRoleId ? ` <@&${staffRoleId}>` : ""}`, embeds: [embed], components: [row] });
+  await channel.send({
+    content: `<@${userId}>${staffRoleId ? ` <@&${staffRoleId}>` : ""}`,
+    embeds: [embed],
+    components: [row],
+    files: [bannerAttachment],
+  });
 
   await logToChannel(
     toxicEmbed()
       .setTitle("🎫 Ticket Opened")
-      .setDescription(`**User:** <@${userId}>\n**Channel:** <#${channel.id}>`)
+      .setDescription(`**User:** <@${userId}>\n**Category:** ${catEmoji} ${catLabel}\n**Channel:** <#${channel.id}>`)
   );
 
   return { channel, alreadyExists: false };

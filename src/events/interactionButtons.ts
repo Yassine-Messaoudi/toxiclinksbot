@@ -3,7 +3,7 @@ import { activeGiveaways } from "../commands/giveaway";
 import { activePolls } from "../commands/poll";
 import { createTicket } from "../commands/ticket";
 import { successEmbed, errorEmbed } from "../utils/embeds";
-import { BOT_COLOR, BOT_FOOTER, LOGO_URL } from "../config";
+import { BOT_COLOR, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE_SHORT, APP_NAME } from "../config";
 
 const OPTION_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"];
 
@@ -68,9 +68,19 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
 
     const embed = new EmbedBuilder()
       .setColor(BOT_COLOR)
-      .setTitle(`📊 ${poll.question}`)
-      .setDescription(description)
-      .setFooter({ text: `${totalVotes} total vote${totalVotes !== 1 ? "s" : ""} • ${BOT_FOOTER}`, iconURL: LOGO_URL })
+      .setAuthor({ name: `${APP_NAME} — Poll`, iconURL: LOGO_URL })
+      .setTitle(`☠️  ${poll.question}`)
+      .setDescription([
+        `*${LINE_SHORT}*`,
+        "",
+        description,
+        "",
+        `*${LINE_SHORT}*`,
+        "",
+        `> ⚡ \`${totalVotes}\` total vote${totalVotes !== 1 ? "s" : ""}`,
+      ].join("\n"))
+      .setThumbnail(SKULL_GIF_URL)
+      .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
       .setTimestamp();
 
     try {
