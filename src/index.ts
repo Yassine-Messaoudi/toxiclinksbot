@@ -159,40 +159,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  // Select menu interactions (ticket categories)
-  if (interaction.isStringSelectMenu()) {
-    if (interaction.customId === "ticket_category") {
-      const category = interaction.values[0];
-      const guild = interaction.guild;
-      if (!guild) return;
-
-      try {
-        const { createTicket } = await import("./commands/ticket");
-        const result = await createTicket(guild, interaction.user.id, interaction.user.username, category);
-        if (result.alreadyExists) {
-          await interaction.reply({
-            embeds: [(await import("./utils/embeds")).errorEmbed(`You already have an open ticket: <#${result.channel.id}>`)],
-            ephemeral: true,
-          });
-        } else {
-          await interaction.reply({
-            embeds: [(await import("./utils/embeds")).successEmbed(`Ticket created: <#${result.channel.id}>`)],
-            ephemeral: true,
-          });
-        }
-      } catch (err) {
-        console.error("[Bot] Error creating ticket from select menu:", err);
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.reply({
-            embeds: [(await import("./utils/embeds")).errorEmbed(`Failed to create ticket: ${(err as Error).message}`)],
-            ephemeral: true,
-          }).catch(() => {});
-        }
-      }
-    }
-    return;
-  }
-
   // Modal submits
   if (interaction.isModalSubmit()) {
     try {

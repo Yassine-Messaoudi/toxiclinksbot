@@ -89,13 +89,14 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
     return;
   }
 
-  // ── Ticket buttons ──
-  if (id === "ticket_create") {
+  // ── Ticket category buttons ──
+  if (id.startsWith("ticket_cat_")) {
+    const category = id.replace("ticket_cat_", "");
     const guild = interaction.guild;
     if (!guild) return;
 
     try {
-      const result = await createTicket(guild, interaction.user.id, interaction.user.username);
+      const result = await createTicket(guild, interaction.user.id, interaction.user.username, category);
       if (result.alreadyExists) {
         await interaction.reply({
           embeds: [errorEmbed(`You already have an open ticket: <#${result.channel.id}>`)],

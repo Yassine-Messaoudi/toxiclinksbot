@@ -1,7 +1,6 @@
 import {
   ChatInputCommandInteraction, GuildMember, Interaction, TextChannel,
   EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
-  StringSelectMenuBuilder, StringSelectMenuOptionBuilder,
   AttachmentBuilder,
   ChannelType, PermissionFlagsBits, CategoryChannel,
 } from "discord.js";
@@ -12,10 +11,10 @@ import { logToChannel } from "../utils/logger";
 import { toxicEmbed } from "../utils/embeds";
 
 /** Path to img folder */
-const IMG_DIR = path.join(__dirname, "..", "..", "img");
+export const IMG_DIR = path.join(__dirname, "..", "..", "img");
 
 /** Map category → image file */
-const CATEGORY_IMAGES: Record<string, string> = {
+export const CATEGORY_IMAGES: Record<string, string> = {
   support:  "Support.png",
   report:   "Support.png",
   account:  "account recovery.png",
@@ -23,13 +22,13 @@ const CATEGORY_IMAGES: Record<string, string> = {
   billing:  "purshacebilling.png",
 };
 
-/** Ticket categories shown in the dropdown */
+/** Ticket categories */
 export const TICKET_CATEGORIES = [
-  { value: "support",  label: "Support",                    description: "Get help with general questions or issues.",     emoji: "⚡",  question: "Have a general question or need help?" },
-  { value: "report",   label: "Report Profile",             description: "Report a user profile for review.",             emoji: "🛡️", question: "Need to report a user profile?" },
-  { value: "account",  label: "Account Recovery",           description: "Recover access to your account.",               emoji: "🔑",  question: "Lost access to your account?" },
-  { value: "verified", label: "Verified Badge Application", description: "Apply for a verified badge on your profile.",   emoji: "☠️",  question: "Want to apply for a verified badge?" },
-  { value: "billing",  label: "Purchase / Billing",         description: "Get help with product purchases and invoices.", emoji: "💳",  question: "Have a question about purchases or billing?" },
+  { value: "support",  label: "Support",                    emoji: "⚡",  question: "Have a general question or need help?" },
+  { value: "report",   label: "Report Profile",             emoji: "🛡️", question: "Need to report a user profile?" },
+  { value: "account",  label: "Account Recovery",           emoji: "🔑",  question: "Lost access to your account?" },
+  { value: "verified", label: "Verified Badge Application", emoji: "☠️",  question: "Want to apply for a verified badge?" },
+  { value: "billing",  label: "Purchase / Billing",         emoji: "💳",  question: "Have a question about purchases or billing?" },
 ];
 
 export const ticketCommand = {
@@ -41,20 +40,14 @@ export const ticketCommand = {
     const sub = cmd.options.getSubcommand();
 
     if (sub === "panel") {
-      // Staff only: send a ticket panel embed with a select menu
       const member = cmd.member as GuildMember;
       if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         await cmd.reply({ embeds: [errorEmbed("You need Manage Server permission.")], ephemeral: true });
         return;
       }
 
-      const bannerFile = new AttachmentBuilder(path.join(IMG_DIR, "Support.png"), { name: "support_banner.png" });
-
-      const categoryList = TICKET_CATEGORIES.map(cat =>
-        `**${cat.question}**\nPress **${cat.label}** to open the matching ticket flow.`
-      ).join("\n\n");
-
-      const embed = new EmbedBuilder()
+      // ── Header embed with skull GIF banner ──
+      const headerEmbed = new EmbedBuilder()
         .setColor(BOT_COLOR)
         .setAuthor({ name: `☠️ ${APP_NAME}`, iconURL: LOGO_URL })
         .setTitle("Support Center")
@@ -62,9 +55,12 @@ export const ticketCommand = {
           `Welcome to **${APP_NAME}**`,
           "Select the option that best matches your needs.",
         ].join("\n"))
-        .setImage("attachment://support_banner.png")
-        .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
-        .setTimestamp();
+        .setImage(SKULL_GIF_URL);
+
+      // ── Detail embed with category list ──
+      const categoryList = TICKET_CATEGORIES.map(cat =>
+        `**${cat.question}**\nPress **${cat.label}** to open the matching ticket flow.`
+      ).join("\n\n");
 
       const detailEmbed = new EmbedBuilder()
         .setColor(BOT_COLOR)
@@ -75,27 +71,24 @@ export const ticketCommand = {
           "",
           `> 📬 Our support team usually responds within **5–30 minutes**.`,
           "> We are currently **not looking** for staff, please do not open tickets for staff applications.",
-        ].join("\n"));
+        ].join("\n"))
+        .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
+        .setTimestamp();
 
-      const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId("ticket_category")
-        .setPlaceholder("Select an option")
-        .addOptions(
-          TICKET_CATEGORIES.map(cat =>
-            new StringSelectMenuOptionBuilder()
-              .setValue(cat.value)
-              .setLabel(cat.label)
-              .setDescription(cat.description)
-              .setEmoji(cat.emoji)
-          )
-        );
-
-      const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+      // ── One button per category, each in its own row ──
+      const buttonRows = TICKET_CATEGORIES.map(cat =>
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ticket_cat_${cat.value}`)
+            .setLabel(cat.label)
+            .setEmoji(cat.emoji)
+            .setStyle(ButtonStyle.Primary),
+        )
+      );
 
       await (cmd.channel as TextChannel).send({
-        embeds: [embed, detailEmbed],
-        components: [row],
-        files: [bannerFile],
+        embeds: [headerEmbed, detailEmbed],
+        components: buttonRows,
       });
       await cmd.reply({ embeds: [successEmbed("Ticket panel sent!")], ephemeral: true });
       return;
