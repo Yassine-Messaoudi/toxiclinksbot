@@ -48,8 +48,13 @@ export const ticketCommand = {
 
       const ch = cmd.channel as TextChannel;
 
-      // ── Header message with skull GIF banner ──
-      const headerEmbed = new EmbedBuilder()
+      // ── Build category list for embed description ──
+      const categoryList = TICKET_CATEGORIES.map(cat =>
+        `**${cat.question}**\nPress **${cat.label}** to open the matching ticket flow.`
+      ).join("\n\n");
+
+      // ── Single embed with everything ──
+      const embed = new EmbedBuilder()
         .setColor(BOT_COLOR)
         .setAuthor({ name: `☠️ ${APP_NAME}`, iconURL: LOGO_URL })
         .setTitle("Support Center")
@@ -57,49 +62,36 @@ export const ticketCommand = {
           `Welcome to **${APP_NAME}**`,
           "Select the option that best matches your needs.",
         ].join("\n"))
-        .setImage(SKULL_GIF_URL);
-
-      await ch.send({ embeds: [headerEmbed] });
-
-      // ── Each category as its own message: embed + green button inside ──
-      for (let i = 0; i < TICKET_CATEGORIES.length; i++) {
-        const cat = TICKET_CATEGORIES[i];
-        const imgFile = CATEGORY_IMAGES[cat.value] || "Support.png";
-        const attachment = new AttachmentBuilder(path.join(IMG_DIR, imgFile), { name: `${cat.value}.png` });
-
-        const catEmbed = new EmbedBuilder()
-          .setColor(BOT_COLOR)
-          .setDescription([
-            `**${cat.question}**`,
-            `Press **${cat.label}** to open the matching ticket flow.`,
-          ].join("\n"))
-          .setThumbnail(`attachment://${cat.value}.png`);
-
-        // Footer on last category
-        if (i === TICKET_CATEGORIES.length - 1) {
-          catEmbed.addFields({
+        .setImage(SKULL_GIF_URL)
+        .addFields(
+          ...TICKET_CATEGORIES.map(cat => ({
+            name: `**${cat.question}**`,
+            value: `Press **${cat.label}** to open the matching ticket flow.`,
+            inline: false,
+          })),
+          {
             name: "\u200b",
-            value: [
-              `*${LINE}*`,
-              `> 📬 Our support team usually responds within **5–30 minutes**.`,
-              "> We are currently **not looking** for staff, please do not open tickets for staff applications.",
-            ].join("\n"),
-          });
-          catEmbed.setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL });
-          catEmbed.setTimestamp();
-        }
+            value: `> 📬 Our support team usually responds within **5–30 minutes**.`,
+            inline: false,
+          },
+        )
+        .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
+        .setTimestamp();
 
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      // ── 5 green buttons with emojis — one per ActionRow ──
+      // To use custom server emojis, replace the emoji string with the emoji ID
+      // e.g. { id: "1234567890", name: "support_icon" }
+      const buttonRows = TICKET_CATEGORIES.map(cat =>
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setCustomId(`ticket_cat_${cat.value}`)
             .setLabel(cat.label)
             .setEmoji(cat.emoji)
             .setStyle(ButtonStyle.Success),
-        );
+        )
+      );
 
-        await ch.send({ embeds: [catEmbed], components: [row], files: [attachment] });
-      }
-
+      await ch.send({ embeds: [embed], components: buttonRows });
       await cmd.reply({ embeds: [successEmbed("Ticket panel sent!")], ephemeral: true });
       return;
     }
