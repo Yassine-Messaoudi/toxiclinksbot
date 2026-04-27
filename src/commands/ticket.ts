@@ -2,6 +2,8 @@ import {
   ChatInputCommandInteraction, GuildMember, Interaction, TextChannel,
   EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
   AttachmentBuilder,
+  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MessageFlags,
   ChannelType, PermissionFlagsBits, CategoryChannel,
 } from "discord.js";
 import path from "path";
@@ -58,39 +60,57 @@ export const ticketCommand = {
 
       const ch = cmd.channel as TextChannel;
 
-      // ── Build description with categories + custom emojis ──
-      const catLines = TICKET_CATEGORIES.map(cat =>
-        `<:${cat.emoji.name}:${cat.emoji.id}> **${cat.question}**\nPress **${cat.label}** to open the matching ticket flow.`
-      ).join("\n\n");
+      // ── Components V2: Container with Sections ──
+      const container = new ContainerBuilder()
+        .setAccentColor(BOT_COLOR);
 
-      const embed = new EmbedBuilder()
-        .setColor(BOT_COLOR)
-        .setAuthor({ name: `☠️ ${APP_NAME}`, iconURL: LOGO_URL })
-        .setTitle("Support Center")
-        .setDescription([
-          `Welcome to **${APP_NAME}**`,
-          "Select the option that best matches your needs.",
-          "",
-          catLines,
-          "",
-          `> 📬 Our support team usually responds within **5–30 minutes**.`,
-        ].join("\n"))
-        .setImage(SKULL_GIF_URL)
-        .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
-        .setTimestamp();
-
-      // ── 5 green buttons with custom emojis ──
-      const buttonRows = TICKET_CATEGORIES.map(cat =>
-        new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`ticket_cat_${cat.value}`)
-            .setLabel(cat.label)
-            .setEmoji(cat.emoji)
-            .setStyle(ButtonStyle.Success),
+      // Header text
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `## ☠️ Support Center\nWelcome to **${APP_NAME}**\nSelect the option that best matches your needs.`
         )
       );
 
-      await ch.send({ embeds: [embed], components: buttonRows });
+      // Separator after header
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(true)
+      );
+
+      // Section per category: text on the left, button on the right
+      for (const cat of TICKET_CATEGORIES) {
+        const section = new SectionBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `**${cat.question}**\nPress **${cat.label}** to open the matching ticket flow.`
+            )
+          )
+          .setButtonAccessory(
+            new ButtonBuilder()
+              .setCustomId(`ticket_cat_${cat.value}`)
+              .setLabel(cat.label)
+              .setEmoji(cat.emoji)
+              .setStyle(ButtonStyle.Primary)
+          );
+
+        container.addSectionComponents(section);
+      }
+
+      // Separator before footer
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(true)
+      );
+
+      // Footer text
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `> 📬 Our support team usually responds within **5–30 minutes**.`
+        )
+      );
+
+      await ch.send({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+      });
       await cmd.reply({ embeds: [successEmbed("Ticket panel sent!")], ephemeral: true });
       return;
     }
