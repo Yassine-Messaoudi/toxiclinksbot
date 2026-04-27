@@ -135,26 +135,33 @@ const commands = [
     .addIntegerOption((opt) => opt.setName("amount").setDescription("Number of messages (1-100)").setRequired(true).setMinValue(1).setMaxValue(100)),
 ].map((cmd) => cmd.toJSON());
 
-const token = process.env.DISCORD_BOT_TOKEN!;
-const clientId = process.env.DISCORD_CLIENT_ID!;
-const guildId = process.env.GUILD_ID || "";
+/** Return the serialised slash command array (used by index.ts auto-register) */
+export function getSlashCommands() {
+  return commands;
+}
 
-const rest = new REST({ version: "10" }).setToken(token);
+// ── Standalone execution (npx tsx src/register-commands.ts) ──
+const isMain = require.main === module;
+if (isMain) {
+  const token = process.env.DISCORD_BOT_TOKEN!;
+  const clientId = process.env.DISCORD_CLIENT_ID!;
+  const guildId = process.env.GUILD_ID || "";
 
-(async () => {
-  try {
-    console.log(`Registering ${commands.length} slash commands...`);
+  const rest = new REST({ version: "10" }).setToken(token);
 
-    if (guildId) {
-      // Guild commands — instant update, great for development
-      await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
-      console.log(`Successfully registered ${commands.length} guild commands.`);
-    } else {
-      // Global commands — can take up to 1 hour to propagate
-      await rest.put(Routes.applicationCommands(clientId), { body: commands });
-      console.log(`Successfully registered ${commands.length} global commands.`);
+  (async () => {
+    try {
+      console.log(`Registering ${commands.length} slash commands...`);
+
+      if (guildId) {
+        await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+        console.log(`Successfully registered ${commands.length} guild commands.`);
+      } else {
+        await rest.put(Routes.applicationCommands(clientId), { body: commands });
+        console.log(`Successfully registered ${commands.length} global commands.`);
+      }
+    } catch (error) {
+      console.error("Error registering commands:", error);
     }
-  } catch (error) {
-    console.error("Error registering commands:", error);
-  }
-})();
+  })();
+}

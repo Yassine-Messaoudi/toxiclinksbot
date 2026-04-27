@@ -7,6 +7,8 @@ import {
   Interaction,
   ActivityType,
   ChatInputCommandInteraction,
+  REST,
+  Routes,
 } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 import Redis from "ioredis";
@@ -85,10 +87,26 @@ const commandList: Command[] = [
 for (const cmd of commandList) commands.set(cmd.name, cmd);
 
 // ── Ready ──
-client.once(Events.ClientReady, (readyClient) => {
+client.once(Events.ClientReady, async (readyClient) => {
   console.log(`[Bot] Logged in as ${readyClient.user.tag}`);
   console.log(`[Bot] Serving ${readyClient.guilds.cache.size} guilds`);
   console.log(`[Bot] ${commands.size} commands loaded`);
+
+  // Auto-register slash commands with Discord API
+  try {
+    const { getSlashCommands } = await import("./register-commands");
+    const slashData = getSlashCommands();
+    const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN!);
+    if (GUILD_ID) {
+      await rest.put(Routes.applicationGuildCommands(readyClient.user.id, GUILD_ID), { body: slashData });
+      console.log(`[Bot] Registered ${slashData.length} guild commands`);
+    } else {
+      await rest.put(Routes.applicationCommands(readyClient.user.id), { body: slashData });
+      console.log(`[Bot] Registered ${slashData.length} global commands`);
+    }
+  } catch (err) {
+    console.error("[Bot] Failed to register commands:", err);
+  }
 
   initLogger(client);
   logText(`🟢 **${APP_NAME} Bot** is online! (${commands.size} commands)`);
