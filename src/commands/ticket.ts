@@ -254,8 +254,10 @@ export async function createTicket(guild: any, userId: string, username: string,
     )
   );
 
+  // Ping first (content can't be used with Components V2)
+  await channel.send(`<@${userId}>${staffRoleId ? ` <@&${staffRoleId}>` : ""}`);
+
   await channel.send({
-    content: `<@${userId}>${staffRoleId ? ` <@&${staffRoleId}>` : ""}`,
     components: [ticketContainer],
     flags: MessageFlags.IsComponentsV2,
   });

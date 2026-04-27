@@ -133,6 +133,12 @@ const commands = [
     .setName("purge")
     .setDescription("Bulk delete messages")
     .addIntegerOption((opt) => opt.setName("amount").setDescription("Number of messages (1-100)").setRequired(true).setMinValue(1).setMaxValue(100)),
+
+  new SlashCommandBuilder()
+    .setName("clear")
+    .setDescription("Clear messages (by number or all)")
+    .addIntegerOption((opt) => opt.setName("amount").setDescription("Number of messages to clear (1-100)").setRequired(false).setMinValue(1).setMaxValue(100))
+    .addBooleanOption((opt) => opt.setName("all").setDescription("Clear ALL messages in the channel").setRequired(false)),
 ].map((cmd) => cmd.toJSON());
 
 /** Return the serialised slash command array (used by index.ts auto-register) */

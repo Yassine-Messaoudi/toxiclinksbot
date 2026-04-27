@@ -32,6 +32,7 @@ import { muteCommand } from "./commands/mute";
 import { banCommand } from "./commands/ban";
 import { kickCommand } from "./commands/kick";
 import { purgeCommand } from "./commands/purge";
+import { clearCommand } from "./commands/clear";
 import { embedCommand } from "./commands/embed";
 
 // ── Events ──
@@ -81,7 +82,7 @@ const commandList: Command[] = [
   profileCommand, setbioCommand, analyticsCommand, leaderboardCommand, lookupCommand,
   helpCommand, userinfoCommand, serverinfoCommand,
   announceCommand, giveawayCommand, pollCommand, suggestCommand, ticketCommand,
-  warnCommand, muteCommand, banCommand, kickCommand, purgeCommand, embedCommand,
+  warnCommand, muteCommand, banCommand, kickCommand, purgeCommand, clearCommand, embedCommand,
 ];
 
 for (const cmd of commandList) commands.set(cmd.name, cmd);
