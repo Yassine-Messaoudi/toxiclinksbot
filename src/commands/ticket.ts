@@ -58,7 +58,11 @@ export const ticketCommand = {
 
       const ch = cmd.channel as TextChannel;
 
-      // ── Single embed: inline fields (question left, styled label right) ──
+      // ── Build description with categories + custom emojis ──
+      const catLines = TICKET_CATEGORIES.map(cat =>
+        `<:${cat.emoji.name}:${cat.emoji.id}> **${cat.question}**\nPress **${cat.label}** to open the matching ticket flow.`
+      ).join("\n\n");
+
       const embed = new EmbedBuilder()
         .setColor(BOT_COLOR)
         .setAuthor({ name: `☠️ ${APP_NAME}`, iconURL: LOGO_URL })
@@ -66,37 +70,16 @@ export const ticketCommand = {
         .setDescription([
           `Welcome to **${APP_NAME}**`,
           "Select the option that best matches your needs.",
+          "",
+          catLines,
+          "",
+          `> 📬 Our support team usually responds within **5–30 minutes**.`,
         ].join("\n"))
-        .setImage(SKULL_GIF_URL);
+        .setImage(SKULL_GIF_URL)
+        .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
+        .setTimestamp();
 
-      // Each category = 2 inline fields (question | emoji label) + 1 spacer
-      for (const cat of TICKET_CATEGORIES) {
-        embed.addFields(
-          {
-            name: `**${cat.question}**`,
-            value: `Press **${cat.label}** to open the matching ticket flow.`,
-            inline: true,
-          },
-          {
-            name: "\u200b",
-            value: `<:${cat.emoji.name}:${cat.emoji.id}> **${cat.label}**`,
-            inline: true,
-          },
-          // invisible spacer to force next pair onto a new row
-          { name: "\u200b", value: "\u200b", inline: false },
-        );
-      }
-
-      // Footer note
-      embed.addFields({
-        name: "\u200b",
-        value: `> 📬 Our support team usually responds within **5–30 minutes**.`,
-        inline: false,
-      });
-      embed.setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL });
-      embed.setTimestamp();
-
-      // ── 5 green buttons below for actual interaction ──
+      // ── 5 green buttons with custom emojis ──
       const buttonRows = TICKET_CATEGORIES.map(cat =>
         new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
