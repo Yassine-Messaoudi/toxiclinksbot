@@ -22,13 +22,23 @@ export const CATEGORY_IMAGES: Record<string, string> = {
   billing:  "purshacebilling.png",
 };
 
+/** Custom server emoji IDs — uploaded to the Discord server */
+const EMOJI = {
+  support:  { id: "1498458293767634995", name: "Support" },
+  report:   { id: "1498458293767634995", name: "Support" },
+  account:  { id: "1498458227485048984", name: "accountrecovery" },
+  verified: { id: "1498458263841145032", name: "Verifiedbadgeapplication" },
+  billing:  { id: "1498458208283656323", name: "purshacebilling" },
+  store:    { id: "1498458184942227559", name: "store" },
+};
+
 /** Ticket categories */
 export const TICKET_CATEGORIES = [
-  { value: "support",  label: "Support",                    emoji: "⚡",  question: "Have a general question or need help?" },
-  { value: "report",   label: "Report Profile",             emoji: "🛡️", question: "Need to report a user profile?" },
-  { value: "account",  label: "Account Recovery",           emoji: "🔑",  question: "Lost access to your account?" },
-  { value: "verified", label: "Verified Badge Application", emoji: "☠️",  question: "Want to apply for a verified badge?" },
-  { value: "billing",  label: "Purchase / Billing",         emoji: "💳",  question: "Have a question about purchases or billing?" },
+  { value: "support",  label: "Support",                    emoji: EMOJI.support,  question: "Have a general question or need help?" },
+  { value: "report",   label: "Report Profile",             emoji: EMOJI.report,   question: "Need to report a user profile?" },
+  { value: "account",  label: "Account Recovery",           emoji: EMOJI.account,  question: "Lost access to your account?" },
+  { value: "verified", label: "Verified Badge Application", emoji: EMOJI.verified, question: "Want to apply for a verified badge?" },
+  { value: "billing",  label: "Purchase / Billing",         emoji: EMOJI.billing,  question: "Have a question about purchases or billing?" },
 ];
 
 export const ticketCommand = {
@@ -128,7 +138,8 @@ export async function createTicket(guild: any, userId: string, username: string,
 
   const catInfo = TICKET_CATEGORIES.find(c => c.value === category);
   const catLabel = catInfo?.label || "Support";
-  const catEmoji = catInfo?.emoji || "⚡";
+  const catEmojiObj = catInfo?.emoji || EMOJI.support;
+  const catEmojiStr = `<:${catEmojiObj.name}:${catEmojiObj.id}>`;
   const catImageFile = CATEGORY_IMAGES[category || "support"] || "Support.png";
 
   const bannerAttachment = new AttachmentBuilder(path.join(IMG_DIR, catImageFile), { name: "ticket_banner.png" });
@@ -145,11 +156,11 @@ export async function createTicket(guild: any, userId: string, username: string,
   const embed = new EmbedBuilder()
     .setColor(BOT_COLOR)
     .setAuthor({ name: `${APP_NAME} — ${catLabel}`, iconURL: LOGO_URL })
-    .setTitle(`${catEmoji}  Ticket Opened`)
+    .setTitle(`${catEmojiStr}  Ticket Opened`)
     .setDescription([
       `Hey <@${userId}>, thanks for reaching out!`,
       "",
-      `> **Category:** ${catEmoji} ${catLabel}`,
+      `> **Category:** ${catEmojiStr} ${catLabel}`,
       "",
       `*${LINE}*`,
       "",
@@ -188,7 +199,7 @@ export async function createTicket(guild: any, userId: string, username: string,
   await logToChannel(
     toxicEmbed()
       .setTitle("🎫 Ticket Opened")
-      .setDescription(`**User:** <@${userId}>\n**Category:** ${catEmoji} ${catLabel}\n**Channel:** <#${channel.id}>`)
+      .setDescription(`**User:** <@${userId}>\n**Category:** ${catEmojiStr} ${catLabel}\n**Channel:** <#${channel.id}>`)
   );
 
   return { channel, alreadyExists: false };
