@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, EmbedBuilder, Interaction } from "discord.js";
 import { prisma } from "../index";
+import { BOT_COLOR, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL } from "../config";
 
 export const leaderboardCommand = {
   name: "leaderboard",
@@ -41,7 +42,8 @@ export const leaderboardCommand = {
       .setColor(0xffd700)
       .setTitle("🏆 Leaderboard — Top Profiles")
       .setDescription(list)
-      .setFooter({ text: "ToxicLinks" })
+      .setThumbnail(SKULL_GIF_URL)
+      .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
       .setTimestamp();
 
     await cmd.reply({ embeds: [embed] });

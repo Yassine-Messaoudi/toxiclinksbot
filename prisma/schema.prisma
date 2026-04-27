@@ -80,7 +80,30 @@ enum SocialPlatform {
   SNAPCHAT
   REDDIT
   LINKEDIN
+  FACEBOOK
+  PAYPAL
+  SOUNDCLOUD
+  CASHAPP
+  PINTEREST
+  KICK
+  XBOX
+  PLAYSTATION
+  APPLE_MUSIC
+  THREADS
+  PATREON
+  BITCOIN
+  ETHEREUM
+  VK
+  BEHANCE
+  DRIBBBLE
+  FIGMA
+  KICKSTARTER
+  KOFI
+  ONLYFANS
+  RUMBLE
+  EMAIL
   WEBSITE
+  CUSTOM
 }
 
 enum WidgetType {
@@ -144,6 +167,8 @@ model User {
   profileViews      ProfileView[]
   pageAliases       PageAlias[]
   payments          Payment[]
+  templates         Template[]
+  templateFavorites TemplateFavorite[]
 }
 
 model Profile {
@@ -159,6 +184,7 @@ model Profile {
   backgroundType    String?       @default("image")
   musicUrl          String?
   musicTitle        String?
+  musicDisplayMode  String?       @default("bar")
   entranceAnimation String?
   customCss         String?       @db.Text
   seoTitle          String?
@@ -302,4 +328,42 @@ model Payment {
   createdAt       DateTime      @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Template System ────────────────────────────────────────
+
+model Template {
+  id            String   @id @default(cuid())
+  authorId      String
+  name          String
+  description   String?  @db.Text
+  previewUrl    String?  // screenshot / thumbnail URL
+  themeBlob     Json     @default("{}") // full theme settings snapshot
+  tags          String[] @default([])
+  isVerified    Boolean  @default(false) // official ToxicLinks templates
+  isPublic      Boolean  @default(true)
+  useCount      Int      @default(0)
+  starCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  author    User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  favorites TemplateFavorite[]
+
+  @@index([authorId])
+  @@index([useCount(sort: Desc)])
+  @@index([starCount(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+model TemplateFavorite {
+  id         String   @id @default(cuid())
+  userId     String
+  templateId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateId])
 }

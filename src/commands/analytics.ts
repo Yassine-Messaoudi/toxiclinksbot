@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, EmbedBuilder, Interaction } from "discord.js";
 import { prisma } from "../index";
+import { BOT_COLOR, BOT_FOOTER, LOGO_URL } from "../config";
 
 export const analyticsCommand = {
   name: "analytics",
@@ -34,8 +35,8 @@ export const analyticsCommand = {
     const totalClicks = dbUser.links.reduce((sum, l) => sum + l.clicks, 0);
 
     const embed = new EmbedBuilder()
-      .setColor(0x7c3aed)
-      .setTitle(`Analytics for @${dbUser.username}`)
+      .setColor(BOT_COLOR)
+      .setTitle(`📊 Analytics for @${dbUser.username}`)
       .addFields(
         { name: "Total Views", value: totalViews.toLocaleString(), inline: true },
         { name: "Total Link Clicks", value: totalClicks.toLocaleString(), inline: true },
@@ -49,7 +50,7 @@ export const analyticsCommand = {
       embed.addFields({ name: "Top Links", value: topLinks });
     }
 
-    embed.setFooter({ text: "ToxicLinks Analytics" });
+    embed.setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL });
     embed.setTimestamp();
 
     await cmd.reply({ embeds: [embed], ephemeral: true });
