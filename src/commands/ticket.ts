@@ -77,21 +77,23 @@ export const ticketCommand = {
       // Header text with logo emoji
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `## <:${EMOJI.logo.name}:${EMOJI.logo.id}> Support Center\nWelcome to **${APP_NAME}**\nSelect the option that best matches your needs.`
+          `# <:${EMOJI.logo.name}:${EMOJI.logo.id}> Support Center\nWelcome to **${APP_NAME}**\n-# Select the option that best matches your needs.`
         )
       );
 
-      // Separator after header
-      container.addSeparatorComponents(
-        new SeparatorBuilder().setDivider(true)
-      );
+      // Toxic divider
+      const toxicDivider = () =>
+        new TextDisplayBuilder().setContent(`-# ═══════════ ☠️ **TOXIC** ☠️ ═══════════`);
+
+      container.addTextDisplayComponents(toxicDivider());
 
       // Section per category: text on the left, button on the right
-      for (const cat of TICKET_CATEGORIES) {
+      for (let i = 0; i < TICKET_CATEGORIES.length; i++) {
+        const cat = TICKET_CATEGORIES[i];
         const section = new SectionBuilder()
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `**${cat.question}**\nPress **${cat.label}** to open the matching ticket flow.`
+              `### ${cat.question}\n-# Press **${cat.label}** to open the matching ticket flow.`
             )
           )
           .setButtonAccessory(
@@ -103,17 +105,22 @@ export const ticketCommand = {
           );
 
         container.addSectionComponents(section);
+
+        // Add toxic divider between categories
+        if (i < TICKET_CATEGORIES.length - 1) {
+          container.addSeparatorComponents(
+            new SeparatorBuilder().setDivider(true)
+          );
+        }
       }
 
-      // Separator before footer
-      container.addSeparatorComponents(
-        new SeparatorBuilder().setDivider(true)
-      );
+      // Toxic divider before footer
+      container.addTextDisplayComponents(toxicDivider());
 
       // Footer text
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `> 📬 Our support team usually responds within **5–30 minutes**.`
+          `-# 📬 Our support team usually responds within **5–30 minutes**.`
         )
       );
 
