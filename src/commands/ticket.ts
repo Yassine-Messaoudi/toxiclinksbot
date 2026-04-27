@@ -28,7 +28,7 @@ export const CATEGORY_IMAGES: Record<string, string> = {
 const EMOJI = {
   support:  { id: "1498458293767634995", name: "Support" },
   report:   { id: "1498458293767634995", name: "Support" },
-  account:  { id: "1498458227485048984", name: "accountrecovery" },
+  account:  { id: "1498458184942227559", name: "store" },
   verified: { id: "1498458263841145032", name: "Verifiedbadgeapplication" },
   billing:  { id: "1498458208283656323", name: "purshacebilling" },
   store:    { id: "1498458184942227559", name: "store" },
@@ -81,11 +81,10 @@ export const ticketCommand = {
         )
       );
 
-      // Toxic divider
-      const toxicDivider = () =>
-        new TextDisplayBuilder().setContent(`-# ═══════════ ☠️ **TOXIC** ☠️ ═══════════`);
-
-      container.addTextDisplayComponents(toxicDivider());
+      // Separator after header
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(true)
+      );
 
       // Section per category: text on the left, button on the right
       for (let i = 0; i < TICKET_CATEGORIES.length; i++) {
@@ -114,8 +113,10 @@ export const ticketCommand = {
         }
       }
 
-      // Toxic divider before footer
-      container.addTextDisplayComponents(toxicDivider());
+      // Separator before footer
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(true)
+      );
 
       // Footer text
       container.addTextDisplayComponents(
@@ -170,56 +171,93 @@ export async function createTicket(guild: any, userId: string, username: string,
 
   const bannerAttachment = new AttachmentBuilder(path.join(IMG_DIR, catImageFile), { name: "ticket_banner.png" });
 
+  const reasonSlug = (catLabel || "support").toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 15);
+
   const channel = await guild.channels.create({
-    name: `ticket-${username.toLowerCase().slice(0, 20)}`,
+    name: `${reasonSlug}-${username.toLowerCase().slice(0, 15)}`,
     type: ChannelType.GuildText,
     parent: discordCategory?.id || undefined,
     permissionOverwrites: permOverwrites,
     topic: `${catLabel} ticket for ${username} (${userId})`,
   });
 
-  // Send welcome message
-  const embed = new EmbedBuilder()
-    .setColor(BOT_COLOR)
-    .setAuthor({ name: `${APP_NAME} — ${catLabel}`, iconURL: LOGO_URL })
-    .setTitle(`${catEmojiStr}  Ticket Opened`)
-    .setDescription([
-      `Hey <@${userId}>, thanks for reaching out!`,
-      "",
-      `> **Category:** ${catEmojiStr} ${catLabel}`,
-      "",
-      `*${LINE}*`,
-      "",
-      `**How to get help:**`,
-      `> 1. Describe your issue below`,
-      `> 2. Attach any relevant screenshots`,
-      `> 3. Wait for a staff member to respond`,
-      "",
-      `*${LINE}*`,
-      "",
-      `🔒 Click **Close Ticket** when your issue is resolved.`,
-    ].join("\n"))
-    .setImage("attachment://ticket_banner.png")
-    .setThumbnail(SKULL_GIF_URL)
-    .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
-    .setTimestamp();
+  // Send welcome message using Components V2
+  const ticketContainer = new ContainerBuilder()
+    .setAccentColor(BOT_COLOR);
 
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId("ticket_close")
-      .setLabel("🔒 Close Ticket")
-      .setStyle(ButtonStyle.Danger),
-    new ButtonBuilder()
-      .setCustomId("ticket_claim")
-      .setLabel("✋ Claim Ticket")
-      .setStyle(ButtonStyle.Primary),
+  // Category banner image
+  ticketContainer.addMediaGalleryComponents(
+    new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(TICKET_BANNER_GIF)
+    )
+  );
+
+  // Header
+  ticketContainer.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `# ${catEmojiStr} Ticket Opened\n**Category:** ${catLabel}`
+    )
+  );
+
+  ticketContainer.addSeparatorComponents(
+    new SeparatorBuilder().setDivider(true)
+  );
+
+  // Welcome text
+  ticketContainer.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `Hey <@${userId}>, thanks for reaching out!\n\n**How to get help:**\n> 1. Describe your issue below\n> 2. Attach any relevant screenshots\n> 3. Wait for a staff member to respond`
+    )
+  );
+
+  ticketContainer.addSeparatorComponents(
+    new SeparatorBuilder().setDivider(true)
+  );
+
+  // Close / Claim buttons in a section
+  const closeSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# 🔒 Click **Close Ticket** when your issue is resolved.`
+      )
+    )
+    .setButtonAccessory(
+      new ButtonBuilder()
+        .setCustomId("ticket_close")
+        .setLabel("Close Ticket")
+        .setEmoji("🔒")
+        .setStyle(ButtonStyle.Danger)
+    );
+
+  ticketContainer.addSectionComponents(closeSection);
+
+  const claimSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# ✋ Staff can **Claim** this ticket.`
+      )
+    )
+    .setButtonAccessory(
+      new ButtonBuilder()
+        .setCustomId("ticket_claim")
+        .setLabel("Claim Ticket")
+        .setEmoji("✋")
+        .setStyle(ButtonStyle.Primary)
+    );
+
+  ticketContainer.addSectionComponents(claimSection);
+
+  // Footer
+  ticketContainer.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `-# <:${EMOJI.logo.name}:${EMOJI.logo.id}> ${APP_NAME} • ${BOT_FOOTER}`
+    )
   );
 
   await channel.send({
     content: `<@${userId}>${staffRoleId ? ` <@&${staffRoleId}>` : ""}`,
-    embeds: [embed],
-    components: [row],
-    files: [bannerAttachment],
+    components: [ticketContainer],
+    flags: MessageFlags.IsComponentsV2,
   });
 
   await logToChannel(
