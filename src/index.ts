@@ -42,7 +42,7 @@ import { handleButtonInteraction } from "./events/interactionButtons";
 
 // ── Utils ──
 import { initLogger, logText } from "./utils/logger";
-import { APP_NAME } from "./config";
+import { APP_NAME, GUILD_ID } from "./config";
 
 // ── Exports ──
 export const prisma = new PrismaClient();
@@ -164,18 +164,21 @@ client.on(Events.UserUpdate, (oldUser, newUser) => {
   handleUserUpdate(oldUser, newUser, prisma);
 });
 
-// ── Member join ──
+// ── Member join (own guild only) ──
 client.on(Events.GuildMemberAdd, (member) => {
+  if (GUILD_ID && member.guild.id !== GUILD_ID) return;
   handleGuildMemberAdd(member, client);
 });
 
-// ── Member leave ──
+// ── Member leave (own guild only) ──
 client.on(Events.GuildMemberRemove, (member) => {
+  if (GUILD_ID && member.guild.id !== GUILD_ID) return;
   handleGuildMemberRemove(member, client);
 });
 
-// ── Member update (boost detection) ──
+// ── Member update / boost detection (own guild only) ──
 client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
+  if (GUILD_ID && newMember.guild.id !== GUILD_ID) return;
   handleGuildMemberUpdate(oldMember, newMember, client);
 });
 
