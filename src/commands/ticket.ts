@@ -58,12 +58,7 @@ export const ticketCommand = {
 
       const ch = cmd.channel as TextChannel;
 
-      // ── Build category list for embed description ──
-      const categoryList = TICKET_CATEGORIES.map(cat =>
-        `**${cat.question}**\nPress **${cat.label}** to open the matching ticket flow.`
-      ).join("\n\n");
-
-      // ── Single embed with everything ──
+      // ── Single embed: inline fields (question left, styled label right) ──
       const embed = new EmbedBuilder()
         .setColor(BOT_COLOR)
         .setAuthor({ name: `☠️ ${APP_NAME}`, iconURL: LOGO_URL })
@@ -72,25 +67,36 @@ export const ticketCommand = {
           `Welcome to **${APP_NAME}**`,
           "Select the option that best matches your needs.",
         ].join("\n"))
-        .setImage(SKULL_GIF_URL)
-        .addFields(
-          ...TICKET_CATEGORIES.map(cat => ({
+        .setImage(SKULL_GIF_URL);
+
+      // Each category = 2 inline fields (question | emoji label) + 1 spacer
+      for (const cat of TICKET_CATEGORIES) {
+        embed.addFields(
+          {
             name: `**${cat.question}**`,
             value: `Press **${cat.label}** to open the matching ticket flow.`,
-            inline: false,
-          })),
+            inline: true,
+          },
           {
             name: "\u200b",
-            value: `> 📬 Our support team usually responds within **5–30 minutes**.`,
-            inline: false,
+            value: `<:${cat.emoji.name}:${cat.emoji.id}> **${cat.label}**`,
+            inline: true,
           },
-        )
-        .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
-        .setTimestamp();
+          // invisible spacer to force next pair onto a new row
+          { name: "\u200b", value: "\u200b", inline: false },
+        );
+      }
 
-      // ── 5 green buttons with emojis — one per ActionRow ──
-      // To use custom server emojis, replace the emoji string with the emoji ID
-      // e.g. { id: "1234567890", name: "support_icon" }
+      // Footer note
+      embed.addFields({
+        name: "\u200b",
+        value: `> 📬 Our support team usually responds within **5–30 minutes**.`,
+        inline: false,
+      });
+      embed.setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL });
+      embed.setTimestamp();
+
+      // ── 5 green buttons below for actual interaction ──
       const buttonRows = TICKET_CATEGORIES.map(cat =>
         new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
