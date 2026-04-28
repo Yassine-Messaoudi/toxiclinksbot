@@ -119,7 +119,7 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
 
   if (id === "ticket_close") {
     const channel = interaction.channel as TextChannel;
-    if (!channel.name.startsWith("ticket-")) {
+    if (!channel.topic?.includes("ticket for")) {
       await interaction.reply({ embeds: [errorEmbed("Not a ticket channel.")], ephemeral: true });
       return;
     }
@@ -132,8 +132,10 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
 
   if (id === "ticket_claim") {
     const channel = interaction.channel as TextChannel;
+    const member = interaction.guild?.members.cache.get(interaction.user.id);
+    const displayName = member?.displayName || interaction.user.username;
     await interaction.reply({
-      embeds: [successEmbed(`This ticket has been claimed by ${interaction.user}.`)],
+      embeds: [successEmbed(`This ticket has been claimed by **${displayName}**.`)],
     });
     return;
   }

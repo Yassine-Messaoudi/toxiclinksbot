@@ -142,9 +142,9 @@ export const ticketCommand = {
 
 /** Create a new ticket channel */
 export async function createTicket(guild: any, userId: string, username: string, category?: string) {
-  // Check for existing ticket
+  // Check for existing ticket (topic contains the user ID)
   const existing = guild.channels.cache.find(
-    (c: any) => c.name === `ticket-${username.toLowerCase().slice(0, 20)}` && c.type === ChannelType.GuildText
+    (c: any) => c.type === ChannelType.GuildText && c.topic?.includes(`(${userId})`)
   );
   if (existing) return { channel: existing, alreadyExists: true };
 
@@ -273,7 +273,7 @@ export async function createTicket(guild: any, userId: string, username: string,
 
 async function closeTicket(cmd: ChatInputCommandInteraction) {
   const channel = cmd.channel as TextChannel;
-  if (!channel.name.startsWith("ticket-")) {
+  if (!channel.topic?.includes("ticket for")) {
     await cmd.reply({ embeds: [errorEmbed("This command can only be used in a ticket channel.")], ephemeral: true });
     return;
   }
