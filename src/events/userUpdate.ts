@@ -30,9 +30,10 @@ export async function handleUserUpdate(
 
   if (!connection) return;
 
-  const updateData: Record<string, string> = {};
+  const userUpdate: Record<string, string> = {};
+  const connectionUpdate: Record<string, string> = {};
 
-  if (avatarChanged && connection.autoSyncAvatar) {
+  if (avatarChanged) {
     // Use GIF format for animated avatars, PNG for static
     const avatarHash = newUser.avatar;
     const isAnimated = avatarHash?.startsWith("a_");
@@ -41,12 +42,18 @@ export async function handleUserUpdate(
       extension: isAnimated ? "gif" : "png",
       forceStatic: false,
     });
-    updateData.avatarUrl = newAvatarUrl;
-    updateData.image = newAvatarUrl;
-    console.log(`[Bot] Auto-syncing avatar for user ${connection.userId} (animated: ${isAnimated})`);
+    // Always update the Discord-specific avatar on the connection
+    connectionUpdate.discordAvatarUrl = newAvatarUrl;
+    connectionUpdate.discordDisplayName = newUser.displayName || newUser.username;
+
+    if (connection.autoSyncAvatar) {
+      userUpdate.avatarUrl = newAvatarUrl;
+      userUpdate.image = newAvatarUrl;
+      console.log(`[Bot] Auto-syncing avatar for user ${connection.userId} (animated: ${isAnimated})`);
+    }
   }
 
-  if (bannerChanged && connection.autoSyncBanner) {
+  if (bannerChanged) {
     // Use GIF format for animated banners, PNG for static
     const bannerHash = newUser.banner;
     const isAnimated = bannerHash?.startsWith("a_");
@@ -56,18 +63,37 @@ export async function handleUserUpdate(
       forceStatic: false,
     });
     if (newBannerUrl) {
-      updateData.bannerUrl = newBannerUrl;
-      console.log(`[Bot] Auto-syncing banner for user ${connection.userId} (animated: ${isAnimated})`);
+      // Always update the Discord-specific banner on the connection
+      connectionUpdate.discordBannerUrl = newBannerUrl;
+
+      if (connection.autoSyncBanner) {
+        userUpdate.bannerUrl = newBannerUrl;
+        console.log(`[Bot] Auto-syncing banner for user ${connection.userId} (animated: ${isAnimated})`);
+      }
     }
   }
 
-  if (Object.keys(updateData).length > 0) {
+  // Update DiscordConnection with Discord-specific data (always)
+  if (Object.keys(connectionUpdate).length > 0) {
+    try {
+      await prisma.discordConnection.update({
+        where: { discordId: newUser.id },
+        data: connectionUpdate,
+      });
+      console.log(`[Bot] Updated DiscordConnection for ${newUser.id}:`, Object.keys(connectionUpdate));
+    } catch (err) {
+      console.error("[Bot] Failed to update DiscordConnection:", (err as Error).message);
+    }
+  }
+
+  // Update User model (only if auto-sync is on)
+  if (Object.keys(userUpdate).length > 0) {
     try {
       await prisma.user.update({
         where: { id: connection.userId },
-        data: updateData,
+        data: userUpdate,
       });
-      console.log(`[Bot] Updated user ${connection.userId}:`, Object.keys(updateData));
+      console.log(`[Bot] Updated user ${connection.userId}:`, Object.keys(userUpdate));
     } catch (err) {
       console.error("[Bot] Failed to update user:", (err as Error).message);
     }

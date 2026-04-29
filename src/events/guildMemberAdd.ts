@@ -1,8 +1,38 @@
-import { GuildMember, Client, EmbedBuilder, TextChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { CHANNELS, ROLES, BOT_COLOR, APP_URL, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
+import {
+  GuildMember, Client, TextChannel, ButtonBuilder, ButtonStyle, MessageFlags,
+  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder, ThumbnailBuilder,
+} from "discord.js";
+import { PrismaClient } from "@prisma/client";
+import { CHANNELS, ROLES, BOT_COLOR, APP_URL, BOT_FOOTER, APP_NAME } from "../config";
 import { logText } from "../utils/logger";
 
+const prisma = new PrismaClient();
+
+/** Same banner + logo used on the ticket panel */
+const WELCOME_BANNER_GIF = "https://res.cloudinary.com/db4mpxc2k/image/upload/v1777332752/toxic_skull_banner_dumql1.gif";
+const EMOJI = {
+  logo: { id: "1498466667242721390", name: "toxiclinks" },
+};
+
 export async function handleGuildMemberAdd(member: GuildMember, client: Client) {
+  // Auto-grant DISCORD_MEMBER badge if they have a ToxicLinks account
+  try {
+    const connection = await prisma.discordConnection.findUnique({
+      where: { discordId: member.id },
+      select: { userId: true },
+    });
+    if (connection) {
+      await prisma.badge.upsert({
+        where: { userId_type_label: { userId: connection.userId, type: "DISCORD_MEMBER", label: "Discord Member" } },
+        create: { userId: connection.userId, type: "DISCORD_MEMBER", label: "Discord Member", icon: "discord", color: "#5865F2" },
+        update: {},
+      });
+      console.log(`[Bot] Granted DISCORD_MEMBER badge to user ${connection.userId}`);
+    }
+  } catch (err) {
+    console.warn("[Bot] Failed to grant DISCORD_MEMBER badge:", (err as Error).message);
+  }
   // Auto-role
   if (ROLES.MEMBER) {
     try {
@@ -22,51 +52,133 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   const memberCount = member.guild.memberCount;
   const ordinal = getOrdinal(memberCount);
   const createdDays = Math.floor((Date.now() - member.user.createdTimestamp) / 86400000);
+  const avatarUrl = member.user.displayAvatarURL({ size: 512 });
+  const logoEmoji = `<:${EMOJI.logo.name}:${EMOJI.logo.id}>`;
 
-  const embed = new EmbedBuilder()
-    .setColor(BOT_COLOR)
-    .setAuthor({
-      name: `${APP_NAME} — Welcome System`,
-      iconURL: LOGO_URL,
-    })
-    .setTitle(`Welcome, ${member.user.displayName}! ☠️`)
-    .setDescription([
-      `> ${member} just joined the **toxic** side.`,
-      "",
-      `\`\`\`ansi`,
-      `\u001b[0;32m╔══════════════════════════════════════╗`,
-      `\u001b[0;32m║  \u001b[1;32m⚡ MEMBER #${memberCount.toLocaleString()}${ordinal}\u001b[0;32m`,
-      `\u001b[0;32m║  \u001b[0;37mAccount Age: ${createdDays} days`,
-      `\u001b[0;32m╚══════════════════════════════════════╝`,
-      `\`\`\``,
-      "",
-      `🔗 **Create your profile** → **[toxiclinks.xyz](${APP_URL})**`,
-      `📜 **Read the rules** → ${CHANNELS.RULES ? `<#${CHANNELS.RULES}>` : "#rules"}`,
-      `💬 **Start chatting** → ${CHANNELS.CHAT ? `<#${CHANNELS.CHAT}>` : "#chat"}`,
-      `🎫 **Need help?** → ${CHANNELS.TICKET_SUPPORT ? `<#${CHANNELS.TICKET_SUPPORT}>` : "#support"}`,
-      "",
-      `*${LINE}*`,
-    ].join("\n"))
-    .setThumbnail(member.user.displayAvatarURL({ size: 512 }))
-    .setImage(SKULL_GIF_URL)
-    .setFooter({ text: `${memberCount.toLocaleString()} members • ${BOT_FOOTER}`, iconURL: LOGO_URL })
-    .setTimestamp();
+  // ── Components V2: Welcome Container ──
+  const container = new ContainerBuilder()
+    .setAccentColor(BOT_COLOR);
 
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setLabel("Create Profile")
-      .setURL(`${APP_URL}/auth/signin`)
-      .setStyle(ButtonStyle.Link)
-      .setEmoji("☠️"),
-    new ButtonBuilder()
-      .setLabel("Website")
-      .setURL(APP_URL)
-      .setStyle(ButtonStyle.Link)
-      .setEmoji("🔗"),
+  // Banner GIF (same as ticket panel)
+  container.addMediaGalleryComponents(
+    new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(WELCOME_BANNER_GIF)
+    )
   );
 
+  // Header with logo emoji + welcome title
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `# ${logoEmoji} Welcome to ${APP_NAME}\n` +
+      `**${member.user.displayName}** just joined the **toxic** side.`
+    )
+  );
+
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+  // Member stats section with avatar thumbnail
+  const statsSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `### ⚡ Member #${memberCount.toLocaleString()}${ordinal}\n` +
+        `-# Account Age: **${createdDays.toLocaleString()}** days\n` +
+        `-# Server Members: **${memberCount.toLocaleString()}**`
+      )
+    )
+    .setThumbnailAccessory(
+      new ThumbnailBuilder().setURL(avatarUrl)
+    );
+  container.addSectionComponents(statsSection);
+
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+  // Quick links section — Rules
+  const rulesSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `### 📜 Read the Rules\n` +
+        `-# Get familiar with our community guidelines.`
+      )
+    )
+    .setButtonAccessory(
+      new ButtonBuilder()
+        .setCustomId("welcome_rules")
+        .setLabel("Rules")
+        .setEmoji("📜")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true)
+    );
+  container.addSectionComponents(rulesSection);
+
+  // Quick links section — Chat
+  const chatSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `### 💬 Start Chatting\n` +
+        `-# Jump into the conversation with the community.`
+      )
+    )
+    .setButtonAccessory(
+      new ButtonBuilder()
+        .setCustomId("welcome_chat")
+        .setLabel("Chat")
+        .setEmoji("💬")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true)
+    );
+  container.addSectionComponents(chatSection);
+
+  // Quick links section — Create Profile (link button)
+  const profileSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `### ⚡ Create Your Profile\n` +
+        `-# Build your toxic bio link page.`
+      )
+    )
+    .setButtonAccessory(
+      new ButtonBuilder()
+        .setURL(`${APP_URL}/auth/signin`)
+        .setLabel("Create Profile")
+        .setEmoji("☠️")
+        .setStyle(ButtonStyle.Link)
+    );
+  container.addSectionComponents(profileSection);
+
+  // Quick links section — Need Help?
+  const supportSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `### 🎫 Need Help?\n` +
+        `-# Open a ticket and our team will assist you.`
+      )
+    )
+    .setButtonAccessory(
+      new ButtonBuilder()
+        .setCustomId("welcome_support")
+        .setLabel("Support")
+        .setEmoji("🎫")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true)
+    );
+  container.addSectionComponents(supportSection);
+
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+  // Footer
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `-# ${logoEmoji} ${APP_NAME} • ${BOT_FOOTER}`
+    )
+  );
+
+  // Ping the member first (content can't be used with Components V2)
   try {
-    await channel.send({ content: `${member}`, embeds: [embed], components: [row] });
+    await channel.send(`${member}`);
+    await channel.send({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+    });
   } catch {}
 
   await logText(`☠️ **${member.user.tag}** joined the server (${memberCount} members)`);

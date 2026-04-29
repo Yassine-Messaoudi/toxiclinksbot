@@ -125,8 +125,10 @@ enum BadgeType {
   VERIFIED
   CUSTOM
   STAFF
+  ADMIN
   EARLY_SUPPORTER
   DISCORD_ROLE
+  DISCORD_MEMBER
 }
 
 enum PaymentStatus {
@@ -263,18 +265,26 @@ model Badge {
   grantedAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, label])
 }
 
 model DiscordConnection {
   id              String   @id @default(cuid())
   userId          String   @unique
   discordId       String   @unique
-  discordUsername String?
-  accessToken     String?  @db.Text
-  refreshToken    String?  @db.Text
-  guildIds        String[] @default([])
-  autoSyncAvatar  Boolean  @default(true)
-  autoSyncBanner  Boolean  @default(true)
+  discordUsername    String?
+  discordDisplayName String?
+  discordAvatarUrl   String?
+  discordBannerUrl       String?
+  avatarDecorationUrl    String?
+  nitroType              Int      @default(0)
+  publicFlags        Int      @default(0)
+  accessToken        String?  @db.Text
+  refreshToken       String?  @db.Text
+  guildIds           String[] @default([])
+  autoSyncAvatar     Boolean  @default(true)
+  autoSyncBanner     Boolean  @default(true)
   showPresence    Boolean  @default(true)
   showActivity    Boolean  @default(true)
   createdAt       DateTime @default(now())
