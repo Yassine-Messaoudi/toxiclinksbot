@@ -223,6 +223,24 @@ const commands = [
       sub.setName("all").setDescription("Scrape all matching asset channels from another server")
         .addStringOption((opt) => opt.setName("source_guild").setDescription("Source server ID").setRequired(true))
         .addIntegerOption((opt) => opt.setName("limit").setDescription("Max messages per channel (default 100)").setRequired(false).setMinValue(1).setMaxValue(5000))
+    )
+    .addSubcommand((sub) =>
+      sub.setName("fetch").setDescription("Scrape a channel via HTTP API (no bot invite needed, uses user token)")
+        .addStringOption((opt) => opt.setName("channel_id").setDescription("Source channel ID to scrape").setRequired(true))
+        .addChannelOption((opt) => opt.setName("target_channel").setDescription("Target channel in this server").setRequired(true))
+        .addStringOption((opt) =>
+          opt.setName("asset_type").setDescription("Asset type for labeling").setRequired(false)
+            .addChoices(
+              { name: "Background", value: "backgrounds" },
+              { name: "PFP", value: "pfps" },
+              { name: "Banner", value: "banners" },
+              { name: "Cursor", value: "cursors" },
+              { name: "Icon", value: "icons" },
+              { name: "Audio", value: "audios" },
+              { name: "Custom Font", value: "custom-fonts" },
+            )
+        )
+        .addIntegerOption((opt) => opt.setName("limit").setDescription("Max messages to scan (default 100)").setRequired(false).setMinValue(1).setMaxValue(5000))
     ),
 ].map((cmd) => cmd.toJSON());
 

@@ -351,5 +351,117 @@ export const scrapeCommand = {
       await cmd.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
       return;
     }
+
+    // ─── /scrape fetch (user-token HTTP scraper) ───
+    if (sub === "fetch") {
+      const sourceChannelId = cmd.options.getString("channel_id", true).trim();
+      const targetChannel = cmd.options.getChannel("target_channel", true) as TextChannel;
+      const limit = cmd.options.getInteger("limit") || 100;
+      const assetType = cmd.options.getString("asset_type") || "backgrounds";
+
+      await cmd.deferReply({ ephemeral: true });
+
+      const userToken = process.env.DISCORD_USER_TOKEN;
+      if (!userToken) {
+        await cmd.editReply({ embeds: [errorEmbed("**DISCORD_USER_TOKEN** not set in `.env`. Add your user token to scrape external servers.")] });
+        return;
+      }
+
+      const emoji = ASSET_EMOJI[assetType] || "📦";
+
+      await cmd.editReply({ embeds: [successEmbed(`⏳ Fetching messages from channel \`${sourceChannelId}\` via HTTP API...\nPosting ${emoji} **${assetType}** to <#${targetChannel.id}>.`)] });
+
+      let totalPosted = 0;
+      let totalScanned = 0;
+      let lastId: string | undefined;
+      let remaining = Math.min(limit, 5000);
+
+      try {
+        while (remaining > 0) {
+          const batchSize = Math.min(remaining, 100);
+          let apiUrl = `https://discord.com/api/v10/channels/${sourceChannelId}/messages?limit=${batchSize}`;
+          if (lastId) apiUrl += `&before=${lastId}`;
+
+          const res = await fetch(apiUrl, {
+            headers: {
+              "Authorization": userToken,
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (!res.ok) {
+            const errText = await res.text();
+            await cmd.editReply({ embeds: [errorEmbed(`Discord API error (${res.status}): ${errText.slice(0, 200)}`)] });
+            return;
+          }
+
+          const messages = (await res.json()) as any[];
+          if (messages.length === 0) break;
+
+          for (const msg of messages) {
+            totalScanned++;
+            const urls: string[] = [];
+            const credit = msg.author?.username || undefined;
+
+            // Attachments
+            if (msg.attachments) {
+              for (const att of msg.attachments) {
+                if (att.url) urls.push(att.url);
+              }
+            }
+
+            // Embeds with images
+            if (msg.embeds) {
+              for (const embed of msg.embeds) {
+                if (embed.image?.url) urls.push(embed.image.url);
+                if (embed.thumbnail?.url && !embed.image) urls.push(embed.thumbnail.url);
+              }
+            }
+
+            if (urls.length === 0) continue;
+
+            for (const url of urls) {
+              const ok = await postAssetEmbed(targetChannel, url, assetType, credit);
+              if (ok) totalPosted++;
+              await new Promise(r => setTimeout(r, 1500));
+            }
+          }
+
+          lastId = messages[messages.length - 1]?.id;
+          remaining -= messages.length;
+
+          if (remaining > 0) {
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
+      } catch (err: any) {
+        console.error("[Scrape Fetch] Error:", err);
+        await cmd.editReply({ embeds: [errorEmbed(`Fetch error: ${err.message?.slice(0, 200)}`)] });
+        return;
+      }
+
+      const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
+      container.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+        )
+      );
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `# ${LOGO} HTTP Scrape Complete\n` +
+          `**Source channel:** \`${sourceChannelId}\`\n` +
+          `**Target:** <#${targetChannel.id}>\n` +
+          `**Messages scanned:** ${totalScanned.toLocaleString()}\n` +
+          `**Assets posted:** ${totalPosted.toLocaleString()}`
+        )
+      );
+      container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+      );
+
+      await cmd.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+      return;
+    }
   },
 };
