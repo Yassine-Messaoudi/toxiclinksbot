@@ -51,6 +51,25 @@ export const CHANNELS = {
   // welcome / leave
   WELCOME: process.env.CH_WELCOME || "",
   GOODBYE: process.env.CH_GOODBYE || "",
+  // assets
+  BACKGROUNDS: process.env.CH_BACKGROUNDS || "",
+  PFPS: process.env.CH_PFPS || "",
+  BANNERS: process.env.CH_BANNERS || "",
+  CURSORS: process.env.CH_CURSORS || "",
+  ICONS: process.env.CH_ICONS || "",
+  AUDIOS: process.env.CH_AUDIOS || "",
+  CUSTOM_FONTS: process.env.CH_CUSTOM_FONTS || "",
+};
+
+/** Asset channel name → config key mapping */
+export const ASSET_CHANNEL_MAP: Record<string, string> = {
+  backgrounds: CHANNELS.BACKGROUNDS,
+  pfps: CHANNELS.PFPS,
+  banners: CHANNELS.BANNERS,
+  cursors: CHANNELS.CURSORS,
+  icons: CHANNELS.ICONS,
+  audios: CHANNELS.AUDIOS,
+  "custom-fonts": CHANNELS.CUSTOM_FONTS,
 };
 
 /** Role IDs */

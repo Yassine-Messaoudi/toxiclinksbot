@@ -148,6 +148,9 @@ model User {
   displayName   String?
   bio           String?   @db.Text
   location      String?
+  occupation    String?   // Developer, Community Manager, Designer, etc.
+  gender        String?   // Male, Female, Non-binary, Prefer not to say, etc.
+  relationship  String?   // Single, Taken, Complicated, etc.
   avatarUrl           String?
   bannerUrl           String?
   avatarDecorationUrl String?
@@ -183,7 +186,9 @@ model Profile {
   revealScreen      Json          @default("{}")
   cursorEffect      String?
   cursorUrl         String?
+  cursorTrail       String?   // Cursor trail/shadow: crows, stars, angels, sparkles, hearts, skulls, etc.
   backgroundEffect  String?
+  bgAnimation       String?   // Background animation: flying-crows, disco, floating-shapes, fireflies, etc.
   backgroundUrl     String?
   backgroundType    String?       @default("image")
   musicUrl          String?

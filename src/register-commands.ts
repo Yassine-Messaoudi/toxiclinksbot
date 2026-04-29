@@ -148,6 +148,63 @@ const commands = [
     .addSubcommand((sub) => sub.setName("pricing").setDescription("Send the pricing panel"))
     .addSubcommand((sub) => sub.setName("chat").setDescription("Send the chat welcome panel")),
 
+  // ── Asset Posting ──
+  new SlashCommandBuilder()
+    .setName("post-asset")
+    .setDescription("Post assets to asset channels (staff only)")
+    .addSubcommand((sub) =>
+      sub.setName("single").setDescription("Post a single asset by URL")
+        .addStringOption((opt) =>
+          opt.setName("type").setDescription("Asset type").setRequired(true)
+            .addChoices(
+              { name: "Background", value: "backgrounds" },
+              { name: "PFP", value: "pfps" },
+              { name: "Banner", value: "banners" },
+              { name: "Cursor", value: "cursors" },
+              { name: "Icon", value: "icons" },
+              { name: "Audio", value: "audios" },
+              { name: "Custom Font", value: "custom-fonts" },
+            )
+        )
+        .addStringOption((opt) => opt.setName("url").setDescription("Direct URL to the asset").setRequired(true))
+        .addStringOption((opt) => opt.setName("title").setDescription("Optional title for the asset").setRequired(false))
+        .addStringOption((opt) => opt.setName("tags").setDescription("Comma-separated tags (e.g. dark,anime,minimal)").setRequired(false))
+    )
+    .addSubcommand((sub) =>
+      sub.setName("bulk").setDescription("Post multiple assets by URLs (space-separated)")
+        .addStringOption((opt) =>
+          opt.setName("type").setDescription("Asset type").setRequired(true)
+            .addChoices(
+              { name: "Background", value: "backgrounds" },
+              { name: "PFP", value: "pfps" },
+              { name: "Banner", value: "banners" },
+              { name: "Cursor", value: "cursors" },
+              { name: "Icon", value: "icons" },
+              { name: "Audio", value: "audios" },
+              { name: "Custom Font", value: "custom-fonts" },
+            )
+        )
+        .addStringOption((opt) => opt.setName("urls").setDescription("Space-separated URLs").setRequired(true))
+    )
+    .addSubcommand((sub) =>
+      sub.setName("upload").setDescription("Upload a file as an asset")
+        .addStringOption((opt) =>
+          opt.setName("type").setDescription("Asset type").setRequired(true)
+            .addChoices(
+              { name: "Background", value: "backgrounds" },
+              { name: "PFP", value: "pfps" },
+              { name: "Banner", value: "banners" },
+              { name: "Cursor", value: "cursors" },
+              { name: "Icon", value: "icons" },
+              { name: "Audio", value: "audios" },
+              { name: "Custom Font", value: "custom-fonts" },
+            )
+        )
+        .addAttachmentOption((opt) => opt.setName("file").setDescription("The file to upload").setRequired(true))
+        .addStringOption((opt) => opt.setName("title").setDescription("Optional title").setRequired(false))
+        .addStringOption((opt) => opt.setName("tags").setDescription("Comma-separated tags").setRequired(false))
+    ),
+
   // ── Asset Scraper ──
   new SlashCommandBuilder()
     .setName("scrape")

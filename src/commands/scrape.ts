@@ -1,8 +1,9 @@
 import {
   ChatInputCommandInteraction, Interaction, GuildMember, TextChannel,
-  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder,
-  MediaGalleryBuilder, MediaGalleryItemBuilder, ButtonBuilder, ButtonStyle,
+  ContainerBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder,
   MessageFlags, PermissionFlagsBits, ChannelType, CategoryChannel,
+  EmbedBuilder, Message,
 } from "discord.js";
 import { BOT_COLOR, APP_NAME, BOT_FOOTER } from "../config";
 import { errorEmbed, successEmbed } from "../utils/embeds";
@@ -19,6 +20,132 @@ const ASSET_CHANNELS = [
   "audios",
   "custom-fonts",
 ];
+
+/** Emoji per asset type for embed decoration */
+const ASSET_EMOJI: Record<string, string> = {
+  backgrounds: "🖼️",
+  pfps: "👤",
+  banners: "🏳️",
+  cursors: "🖱️",
+  icons: "✨",
+  audios: "🎵",
+  "custom-fonts": "🔤",
+};
+
+/** Post a single asset as a branded embed in the target channel */
+async function postAssetEmbed(
+  targetChannel: TextChannel,
+  url: string,
+  assetType: string,
+  credit?: string,
+): Promise<boolean> {
+  const emoji = ASSET_EMOJI[assetType] || "📦";
+  const isImage = /\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(url);
+  const isVideo = /\.(mp4|mov|webm)(\?.*)?$/i.test(url);
+  const isAudio = /\.(mp3|ogg|wav|flac|m4a)(\?.*)?$/i.test(url);
+
+  try {
+    if (isImage) {
+      // Post as an embed with the image displayed
+      const embed = new EmbedBuilder()
+        .setColor(BOT_COLOR)
+        .setImage(url)
+        .setFooter({ text: `${emoji} ${assetType} • ${BOT_FOOTER}` })
+        .setTimestamp();
+
+      if (credit) embed.setDescription(`> Shared by **${credit}**`);
+
+      const msg = await targetChannel.send({ embeds: [embed] });
+      await addAssetReactions(msg);
+      return true;
+    }
+
+    if (isVideo || isAudio) {
+      // Videos and audio files can't be embedded — send as content + file URL
+      const label = isVideo ? "🎬 Video" : "🎵 Audio";
+      const msg = await targetChannel.send({
+        content: `${emoji} **${assetType.toUpperCase()}** — ${label}${credit ? ` • by **${credit}**` : ""}\n${url}`,
+      });
+      await addAssetReactions(msg);
+      return true;
+    }
+
+    // Fallback: just send with branding
+    const msg = await targetChannel.send({
+      content: `${emoji} **${assetType.toUpperCase()}**${credit ? ` • by **${credit}**` : ""}\n${url}`,
+    });
+    await addAssetReactions(msg);
+    return true;
+  } catch (err) {
+    console.error(`[Scrape] Failed to post to #${targetChannel.name}:`, err);
+    return false;
+  }
+}
+
+/** Add reactions to asset posts for engagement */
+async function addAssetReactions(msg: Message) {
+  try {
+    await msg.react("🔥");
+    await msg.react("💾");
+  } catch {}
+}
+
+/** Scrape a source channel and post formatted embeds to target */
+async function scrapeChannel(
+  sourceCh: TextChannel,
+  targetCh: TextChannel,
+  assetType: string,
+  limit: number,
+): Promise<{ scanned: number; posted: number }> {
+  let totalPosted = 0;
+  let totalScanned = 0;
+  let lastId: string | undefined;
+  let remaining = Math.min(limit, 5000);
+
+  while (remaining > 0) {
+    const batchSize = Math.min(remaining, 100);
+    const messages = await sourceCh.messages.fetch({
+      limit: batchSize,
+      ...(lastId ? { before: lastId } : {}),
+    });
+
+    if (messages.size === 0) break;
+
+    for (const [, msg] of messages) {
+      totalScanned++;
+      const urls: string[] = [];
+      const credit = msg.author?.username || undefined;
+
+      // Collect attachment URLs
+      for (const att of msg.attachments.values()) {
+        urls.push(att.url);
+      }
+      // Collect embed images (some bots post images as embeds)
+      for (const embed of msg.embeds) {
+        if (embed.image?.url) urls.push(embed.image.url);
+        if (embed.thumbnail?.url && !embed.image) urls.push(embed.thumbnail.url);
+      }
+
+      if (urls.length === 0) continue;
+
+      for (const url of urls) {
+        const ok = await postAssetEmbed(targetCh, url, assetType, credit);
+        if (ok) totalPosted++;
+        // Rate limit protection: 1s between posts
+        await new Promise(r => setTimeout(r, 1200));
+      }
+    }
+
+    lastId = messages.last()?.id;
+    remaining -= messages.size;
+
+    if (remaining > 0) {
+      await new Promise(r => setTimeout(r, 800));
+    }
+  }
+
+  return { scanned: totalScanned, posted: totalPosted };
+}
 
 export const scrapeCommand = {
   name: "scrape",
@@ -62,17 +189,23 @@ export const scrapeCommand = {
         if (exists) {
           existing.push(name);
         } else {
+          const emoji = ASSET_EMOJI[name] || "📦";
           await guild.channels.create({
             name,
             type: ChannelType.GuildText,
             parent: category.id,
-            topic: `${APP_NAME} asset channel — ${name}`,
+            topic: `${emoji} ${APP_NAME} — ${name} assets. React 🔥 for fire, 💾 to save.`,
           });
           created.push(name);
         }
       }
 
       const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
+      container.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+        )
+      );
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
           `# ${LOGO} Asset Channels Ready\n` +
@@ -95,14 +228,12 @@ export const scrapeCommand = {
 
       await cmd.deferReply({ ephemeral: true });
 
-      // Validate source guild
       const sourceGuild = client.guilds.cache.get(sourceGuildId);
       if (!sourceGuild) {
         await cmd.editReply({ embeds: [errorEmbed(`Bot is not in guild \`${sourceGuildId}\`. Add the bot to the source server first.`)] });
         return;
       }
 
-      // Validate source channel
       const sourceCh = sourceGuild.channels.cache.get(sourceChannelId);
       if (!sourceCh || sourceCh.type !== ChannelType.GuildText) {
         await cmd.editReply({ embeds: [errorEmbed(`Channel \`${sourceChannelId}\` not found or not a text channel in **${sourceGuild.name}**.`)] });
@@ -110,66 +241,13 @@ export const scrapeCommand = {
       }
 
       const sourceTextCh = sourceCh as TextChannel;
+      // Detect asset type from target channel name
+      const assetType = ASSET_CHANNELS.find(n => targetChannel.name.includes(n)) || targetChannel.name;
 
-      // Fetch messages in batches
-      let totalAttachments = 0;
-      let totalMessages = 0;
-      let lastId: string | undefined;
-      let remaining = Math.min(limit, 5000);
+      await cmd.editReply({ embeds: [successEmbed(`⏳ Scraping **#${sourceTextCh.name}** from **${sourceGuild.name}**...\nPosting to <#${targetChannel.id}> as branded embeds. This may take a while.`)] });
 
-      await cmd.editReply({ embeds: [successEmbed(`Scraping **#${sourceTextCh.name}** from **${sourceGuild.name}**...\nScanning up to ${remaining} messages.`)] });
+      const result = await scrapeChannel(sourceTextCh, targetChannel, assetType, limit);
 
-      while (remaining > 0) {
-        const batchSize = Math.min(remaining, 100);
-        const messages = await sourceTextCh.messages.fetch({
-          limit: batchSize,
-          ...(lastId ? { before: lastId } : {}),
-        });
-
-        if (messages.size === 0) break;
-
-        for (const [, msg] of messages) {
-          totalMessages++;
-
-          // Collect all image/file URLs from attachments and embeds
-          const urls: string[] = [];
-
-          for (const att of msg.attachments.values()) {
-            urls.push(att.url);
-          }
-
-          // Also grab embed images (some bots post images as embeds)
-          for (const embed of msg.embeds) {
-            if (embed.image?.url) urls.push(embed.image.url);
-            if (embed.thumbnail?.url && !embed.image) urls.push(embed.thumbnail.url);
-          }
-
-          if (urls.length === 0) continue;
-
-          // Post each batch of URLs to the target channel
-          // Discord allows up to 10 URLs per message — send in chunks
-          for (let i = 0; i < urls.length; i += 10) {
-            const chunk = urls.slice(i, i + 10);
-            const content = chunk.join("\n");
-            try {
-              await targetChannel.send({ content });
-              totalAttachments += chunk.length;
-            } catch (err) {
-              console.error(`[Scrape] Failed to send to #${targetChannel.name}:`, err);
-            }
-          }
-        }
-
-        lastId = messages.last()?.id;
-        remaining -= messages.size;
-
-        // Small delay to avoid rate limits
-        if (remaining > 0) {
-          await new Promise(r => setTimeout(r, 1000));
-        }
-      }
-
-      // Final report
       const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
       container.addMediaGalleryComponents(
         new MediaGalleryBuilder().addItems(
@@ -181,8 +259,8 @@ export const scrapeCommand = {
           `# ${LOGO} Scrape Complete\n` +
           `**Source:** ${sourceGuild.name} → #${sourceTextCh.name}\n` +
           `**Target:** <#${targetChannel.id}>\n` +
-          `**Messages scanned:** ${totalMessages.toLocaleString()}\n` +
-          `**Assets scraped:** ${totalAttachments.toLocaleString()}`
+          `**Messages scanned:** ${result.scanned.toLocaleString()}\n` +
+          `**Assets posted:** ${result.posted.toLocaleString()}`
         )
       );
       container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
@@ -209,7 +287,6 @@ export const scrapeCommand = {
 
       const ourGuild = cmd.guild!;
 
-      // Find our "assets" category
       const assetsCategory = ourGuild.channels.cache.find(
         (c) => c.type === ChannelType.GuildCategory && c.name.toLowerCase() === "assets"
       ) as CategoryChannel | undefined;
@@ -219,16 +296,16 @@ export const scrapeCommand = {
         return;
       }
 
-      // Find source channels that match our asset channel names
       const sourceAssetCategory = sourceGuild.channels.cache.find(
         (c) => c.type === ChannelType.GuildCategory && c.name.toLowerCase() === "assets"
       ) as CategoryChannel | undefined;
 
-      const results: { name: string; count: number }[] = [];
+      const results: { name: string; scanned: number; posted: number }[] = [];
       let grandTotal = 0;
 
+      await cmd.editReply({ embeds: [successEmbed(`⏳ Scraping all asset channels from **${sourceGuild.name}**...\nThis may take several minutes.`)] });
+
       for (const assetName of ASSET_CHANNELS) {
-        // Find source channel (under assets category, or just by name)
         const sourceCh = sourceGuild.channels.cache.find(
           (c) => c.type === ChannelType.GuildText && c.name === assetName &&
             (sourceAssetCategory ? c.parentId === sourceAssetCategory.id : true)
@@ -236,59 +313,17 @@ export const scrapeCommand = {
 
         if (!sourceCh) continue;
 
-        // Find our target channel
         const targetCh = ourGuild.channels.cache.find(
           (c) => c.type === ChannelType.GuildText && c.name === assetName && c.parentId === assetsCategory!.id
         ) as TextChannel | undefined;
 
         if (!targetCh) continue;
 
-        // Scrape
-        let count = 0;
-        let lastId: string | undefined;
-        let remaining = Math.min(limit, 5000);
-
-        while (remaining > 0) {
-          const batchSize = Math.min(remaining, 100);
-          const messages = await sourceCh.messages.fetch({
-            limit: batchSize,
-            ...(lastId ? { before: lastId } : {}),
-          });
-
-          if (messages.size === 0) break;
-
-          for (const [, msg] of messages) {
-            const urls: string[] = [];
-
-            for (const att of msg.attachments.values()) {
-              urls.push(att.url);
-            }
-            for (const embed of msg.embeds) {
-              if (embed.image?.url) urls.push(embed.image.url);
-              if (embed.thumbnail?.url && !embed.image) urls.push(embed.thumbnail.url);
-            }
-
-            if (urls.length === 0) continue;
-
-            for (let i = 0; i < urls.length; i += 10) {
-              const chunk = urls.slice(i, i + 10);
-              try {
-                await targetCh.send({ content: chunk.join("\n") });
-                count += chunk.length;
-              } catch {}
-            }
-          }
-
-          lastId = messages.last()?.id;
-          remaining -= messages.size;
-          if (remaining > 0) await new Promise(r => setTimeout(r, 1000));
-        }
-
-        results.push({ name: assetName, count });
-        grandTotal += count;
+        const result = await scrapeChannel(sourceCh, targetCh, assetName, limit);
+        results.push({ name: assetName, ...result });
+        grandTotal += result.posted;
       }
 
-      // Final report
       const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
       container.addMediaGalleryComponents(
         new MediaGalleryBuilder().addItems(
@@ -297,14 +332,14 @@ export const scrapeCommand = {
       );
 
       const resultLines = results.length
-        ? results.map(r => `> **#${r.name}** — ${r.count.toLocaleString()} assets`).join("\n")
+        ? results.map(r => `> ${ASSET_EMOJI[r.name] || "📦"} **#${r.name}** — ${r.posted} assets (${r.scanned} scanned)`).join("\n")
         : "> No matching channels found.";
 
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
           `# ${LOGO} Full Scrape Complete\n` +
           `**Source server:** ${sourceGuild.name}\n` +
-          `**Total assets scraped:** ${grandTotal.toLocaleString()}\n\n` +
+          `**Total assets posted:** ${grandTotal.toLocaleString()}\n\n` +
           resultLines
         )
       );
