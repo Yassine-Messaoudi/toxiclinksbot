@@ -1,5 +1,10 @@
-import { GuildMember, PartialGuildMember, Client, EmbedBuilder, TextChannel } from "discord.js";
-import { CHANNELS, PREMIUM_COLOR, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE_SHORT, APP_NAME } from "../config";
+import {
+  GuildMember, PartialGuildMember, Client, TextChannel, MessageFlags,
+  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder, ThumbnailBuilder,
+} from "discord.js";
+import { CHANNELS, PREMIUM_COLOR, BOT_FOOTER, APP_NAME } from "../config";
+import { BANNER_GIF, LOGO } from "../utils/branding";
 import { logText } from "../utils/logger";
 
 export async function handleGuildMemberUpdate(
@@ -24,36 +29,57 @@ async function handleNewBoost(member: GuildMember, client: Client) {
   if (!channel) return;
 
   const boostCount = member.guild.premiumSubscriptionCount || 0;
+  const avatarUrl = member.user.displayAvatarURL({ size: 512 });
 
-  const embed = new EmbedBuilder()
-    .setColor(PREMIUM_COLOR)
-    .setAuthor({ name: `${APP_NAME} — Server Boost`, iconURL: LOGO_URL })
-    .setTitle(`☠️  ${member.user.displayName} boosted!`)
-    .setDescription([
-      `*${LINE_SHORT}*`,
-      "",
-      `> **${member.user.tag}** just boosted the server!`,
-      "",
-      "```ansi",
-      "\u001b[0;35m╔══════════════════════════════════╗",
-      `\u001b[0;35m║  \u001b[1;35m💎 BOOST INFO\u001b[0;35m`,
-      `\u001b[0;35m║  \u001b[0;37mTotal Boosts: ${boostCount}`,
-      `\u001b[0;35m║  \u001b[0;37mServer Level: ${member.guild.premiumTier}`,
-      "\u001b[0;35m╚══════════════════════════════════╝",
-      "```",
-      "",
-      "> 💜 Thank you for your support!",
-      "",
-      `*${LINE_SHORT}*`,
-    ].join("\n"))
-    .setThumbnail(member.user.displayAvatarURL({ size: 512 }))
-    .setImage(SKULL_GIF_URL)
-    .setFooter({ text: `${boostCount} boosts • ${BOT_FOOTER}`, iconURL: LOGO_URL })
-    .setTimestamp();
+  const container = new ContainerBuilder().setAccentColor(PREMIUM_COLOR);
+
+  // Banner
+  container.addMediaGalleryComponents(
+    new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+    )
+  );
+
+  // Header
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `# ${LOGO} Server Boosted!\n**${member.user.displayName}** just boosted **${APP_NAME}**! 💎`
+    )
+  );
+
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+  // Boost stats with avatar thumbnail
+  const statsSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `### 💎 Boost Info\n` +
+        `-# Total Boosts: **${boostCount}**\n` +
+        `-# Server Level: **${member.guild.premiumTier}**\n` +
+        `-# Boosted by: **${member.user.displayName}**`
+      )
+    )
+    .setThumbnailAccessory(
+      new ThumbnailBuilder().setURL(avatarUrl)
+    );
+  container.addSectionComponents(statsSection);
+
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+  // Thank you
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `> 💜 Thank you for supporting the community!\n> Your boost helps keep ${APP_NAME} running.\n\n-# ${LOGO} ${BOT_FOOTER}`
+    )
+  );
 
   try {
-    await channel.send({ content: `${member}`, embeds: [embed] });
+    await channel.send(`${member}`);
+    await channel.send({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+    });
   } catch {}
 
-  await logText(`� **${member.user.tag}** boosted the server! (${boostCount} boosts, Level ${member.guild.premiumTier})`);
+  await logText(`💎 **${member.user.tag}** boosted the server! (${boostCount} boosts, Level ${member.guild.premiumTier})`);
 }

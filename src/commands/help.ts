@@ -1,5 +1,57 @@
-import { ChatInputCommandInteraction, EmbedBuilder, Interaction, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { BOT_COLOR, APP_NAME, APP_URL, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE } from "../config";
+import {
+  ChatInputCommandInteraction, Interaction, ButtonBuilder, ButtonStyle,
+  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder, MessageFlags,
+} from "discord.js";
+import { BOT_COLOR, APP_NAME, APP_URL, BOT_FOOTER } from "../config";
+import { BANNER_GIF, LOGO } from "../utils/branding";
+
+/** Command categories */
+const CATEGORIES = [
+  {
+    title: "Profile",
+    commands: [
+      { cmd: "/profile [user]", desc: "View a profile card" },
+      { cmd: "/setbio <text>", desc: "Update your bio" },
+      { cmd: "/lookup <username>", desc: "Search a profile" },
+    ],
+  },
+  {
+    title: "Stats & Info",
+    commands: [
+      { cmd: "/analytics", desc: "Profile analytics" },
+      { cmd: "/leaderboard", desc: "Top profiles" },
+      { cmd: "/serverinfo", desc: "Server stats" },
+      { cmd: "/userinfo [user]", desc: "User info" },
+    ],
+  },
+  {
+    title: "Community",
+    commands: [
+      { cmd: "/suggest <idea>", desc: "Submit idea" },
+      { cmd: "/poll <question>", desc: "Create a poll" },
+      { cmd: "/ticket", desc: "Open support ticket" },
+    ],
+  },
+  {
+    title: "Moderation",
+    commands: [
+      { cmd: "/warn <user>", desc: "Warn a user" },
+      { cmd: "/mute <user> <dur>", desc: "Timeout" },
+      { cmd: "/kick <user>", desc: "Kick a user" },
+      { cmd: "/ban <user>", desc: "Ban a user" },
+      { cmd: "/purge <amount>", desc: "Bulk delete" },
+    ],
+  },
+  {
+    title: "Staff",
+    commands: [
+      { cmd: "/announce <msg>", desc: "Announcement" },
+      { cmd: "/giveaway <prize>", desc: "Start giveaway" },
+      { cmd: "/embed", desc: "Custom embed builder" },
+    ],
+  },
+];
 
 export const helpCommand = {
   name: "help",
@@ -7,101 +59,76 @@ export const helpCommand = {
     if (!interaction.isChatInputCommand()) return;
     const cmd = interaction as ChatInputCommandInteraction;
 
-    const embed = new EmbedBuilder()
-      .setColor(BOT_COLOR)
-      .setAuthor({ name: `${APP_NAME} — Command Center`, iconURL: LOGO_URL })
-      .setTitle("☠️  Bot Commands")
-      .setDescription([
-        `*${LINE}*`,
-        "",
-        `> Your all-in-one bot for **${APP_NAME}**`,
-        "> Manage your profile, view stats, and more — right from Discord.",
-        "",
-        "```ansi",
-        "\u001b[0;32m╔══════════════════════════════════════╗",
-        "\u001b[0;32m║        \u001b[1;32m⚡ COMMAND LIST ⚡\u001b[0;32m            ║",
-        "\u001b[0;32m╚══════════════════════════════════════╝",
-        "```",
-      ].join("\n"))
-      .addFields(
-        {
-          name: "☠️ Profile",
-          value: [
-            "> `/profile [user]` — View a profile card",
-            "> `/setbio <text>` — Update your bio",
-            "> `/lookup <username>` — Search a profile",
-          ].join("\n"),
-          inline: true,
-        },
-        {
-          name: "📊 Stats",
-          value: [
-            "> `/analytics` — Profile analytics",
-            "> `/leaderboard` — Top profiles",
-            "> `/serverinfo` — Server stats",
-            "> `/userinfo [user]` — User info",
-          ].join("\n"),
-          inline: true,
-        },
-        { name: "\u200b", value: "\u200b", inline: false },
-        {
-          name: "⚡ Community",
-          value: [
-            "> `/suggest <idea>` — Submit idea",
-            "> `/poll <question>` — Create a poll",
-            "> `/ticket` — Open support ticket",
-          ].join("\n"),
-          inline: true,
-        },
-        {
-          name: "🛡️ Moderation",
-          value: [
-            "> `/warn <user>` — Warn a user",
-            "> `/mute <user> <dur>` — Timeout",
-            "> `/kick <user>` — Kick a user",
-            "> `/ban <user>` — Ban a user",
-            "> `/purge <amount>` — Bulk delete",
-          ].join("\n"),
-          inline: true,
-        },
-        { name: "\u200b", value: "\u200b", inline: false },
-        {
-          name: "🔧 Staff",
-          value: [
-            "> `/announce <msg>` — Announcement",
-            "> `/giveaway <prize>` — Start giveaway",
-            "> `/embed` — Custom embed builder",
-          ].join("\n"),
-          inline: true,
-        },
-        {
-          name: "🔗 Quick Links",
-          value: [
-            `> [☠️ Website](${APP_URL})`,
-            `> [⚡ Dashboard](${APP_URL}/dashboard)`,
-            `> [💬 Discord](https://discord.gg/toxiclinks)`,
-          ].join("\n"),
-          inline: true,
-        },
-      )
-      .setThumbnail(SKULL_GIF_URL)
-      .setImage(SKULL_GIF_URL)
-      .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
-      .setTimestamp();
+    const container = new ContainerBuilder()
+      .setAccentColor(BOT_COLOR);
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setLabel("Website")
-        .setURL(APP_URL)
-        .setStyle(ButtonStyle.Link)
-        .setEmoji("☠️"),
-      new ButtonBuilder()
-        .setLabel("Dashboard")
-        .setURL(`${APP_URL}/dashboard`)
-        .setStyle(ButtonStyle.Link)
-        .setEmoji("⚡"),
+    // Banner
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+      )
     );
 
-    await cmd.reply({ embeds: [embed], components: [row] });
+    // Header
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${LOGO} ${APP_NAME} — Command Center\nManage your profile, view stats, and flex — right from Discord.\n-# ${CATEGORIES.reduce((a, c) => a + c.commands.length, 0)} commands loaded`
+      )
+    );
+
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+    // Each command category as a text block
+    for (let i = 0; i < CATEGORIES.length; i++) {
+      const cat = CATEGORIES[i];
+      const lines = cat.commands.map(c => `> \`${c.cmd}\` — ${c.desc}`).join("\n");
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`### ${cat.title}\n${lines}`)
+      );
+
+      if (i < CATEGORIES.length - 1) {
+        container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+      }
+    }
+
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+    // Quick links as sections with buttons
+    const websiteSection = new SectionBuilder()
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`-# ☠️ Visit **${APP_NAME}** — build your toxic profile`)
+      )
+      .setButtonAccessory(
+        new ButtonBuilder()
+          .setLabel("Website")
+          .setURL(APP_URL)
+          .setStyle(ButtonStyle.Link)
+      );
+    container.addSectionComponents(websiteSection);
+
+    const dashSection = new SectionBuilder()
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent("-# ⚡ Manage your links, themes, badges & more")
+      )
+      .setButtonAccessory(
+        new ButtonBuilder()
+          .setLabel("Dashboard")
+          .setURL(`${APP_URL}/dashboard`)
+          .setStyle(ButtonStyle.Link)
+      );
+    container.addSectionComponents(dashSection);
+
+    // Footer
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# ${LOGO} ${BOT_FOOTER}`
+      )
+    );
+
+    await cmd.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+    });
   },
 };

@@ -5,15 +5,10 @@ import {
 } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 import { CHANNELS, ROLES, BOT_COLOR, APP_URL, BOT_FOOTER, APP_NAME } from "../config";
+import { BANNER_GIF, LOGO, EMOJI } from "../utils/branding";
 import { logText } from "../utils/logger";
 
 const prisma = new PrismaClient();
-
-/** Same banner + logo used on the ticket panel */
-const WELCOME_BANNER_GIF = "https://res.cloudinary.com/db4mpxc2k/image/upload/v1777332752/toxic_skull_banner_dumql1.gif";
-const EMOJI = {
-  logo: { id: "1498466667242721390", name: "toxiclinks" },
-};
 
 export async function handleGuildMemberAdd(member: GuildMember, client: Client) {
   // Auto-grant DISCORD_MEMBER badge if they have a ToxicLinks account
@@ -53,7 +48,7 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   const ordinal = getOrdinal(memberCount);
   const createdDays = Math.floor((Date.now() - member.user.createdTimestamp) / 86400000);
   const avatarUrl = member.user.displayAvatarURL({ size: 512 });
-  const logoEmoji = `<:${EMOJI.logo.name}:${EMOJI.logo.id}>`;
+  const logoEmoji = LOGO;
 
   // ── Components V2: Welcome Container ──
   const container = new ContainerBuilder()
@@ -62,7 +57,7 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   // Banner GIF (same as ticket panel)
   container.addMediaGalleryComponents(
     new MediaGalleryBuilder().addItems(
-      new MediaGalleryItemBuilder().setURL(WELCOME_BANNER_GIF)
+      new MediaGalleryItemBuilder().setURL(BANNER_GIF)
     )
   );
 

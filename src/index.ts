@@ -34,6 +34,8 @@ import { kickCommand } from "./commands/kick";
 import { purgeCommand } from "./commands/purge";
 import { clearCommand } from "./commands/clear";
 import { embedCommand } from "./commands/embed";
+import { scrapeCommand } from "./commands/scrape";
+import { panelsCommand } from "./commands/panels";
 
 // ── Events ──
 import { handlePresenceUpdate } from "./events/presenceUpdate";
@@ -82,7 +84,7 @@ const commandList: Command[] = [
   profileCommand, setbioCommand, analyticsCommand, leaderboardCommand, lookupCommand,
   helpCommand, userinfoCommand, serverinfoCommand,
   announceCommand, giveawayCommand, pollCommand, suggestCommand, ticketCommand,
-  warnCommand, muteCommand, banCommand, kickCommand, purgeCommand, clearCommand, embedCommand,
+  warnCommand, muteCommand, banCommand, kickCommand, purgeCommand, clearCommand, embedCommand, scrapeCommand, panelsCommand,
 ];
 
 for (const cmd of commandList) commands.set(cmd.name, cmd);

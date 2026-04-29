@@ -8,9 +8,9 @@ import {
 } from "discord.js";
 import path from "path";
 import { BOT_COLOR, CHANNELS, ROLES, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
-import { errorEmbed, successEmbed } from "../utils/embeds";
+import { errorEmbed, successEmbed, toxicEmbed } from "../utils/embeds";
 import { logToChannel } from "../utils/logger";
-import { toxicEmbed } from "../utils/embeds";
+import { BANNER_GIF, LOGO, EMOJI as BRAND_EMOJI } from "../utils/branding";
 
 /** Path to img folder */
 export const IMG_DIR = path.join(__dirname, "..", "..", "img");
@@ -24,18 +24,16 @@ export const CATEGORY_IMAGES: Record<string, string> = {
   billing:  "purshacebilling.png",
 };
 
-/** Custom server emoji IDs — uploaded to the Discord server */
+/** Local emoji aliases (ticket-specific categories use brand + local) */
 const EMOJI = {
-  support:  { id: "1498458293767634995", name: "Support" },
-  report:   { id: "1498458293767634995", name: "Support" },
-  account:  { id: "1498458184942227559", name: "store" },
-  verified: { id: "1498458263841145032", name: "Verifiedbadgeapplication" },
-  billing:  { id: "1498458208283656323", name: "purshacebilling" },
-  store:    { id: "1498458184942227559", name: "store" },
-  logo:     { id: "1498466667242721390", name: "toxiclinks" },
+  ...BRAND_EMOJI,
+  support:  BRAND_EMOJI.support,
+  report:   BRAND_EMOJI.support,
+  account:  BRAND_EMOJI.store,
+  verified: BRAND_EMOJI.verified,
+  billing:  BRAND_EMOJI.billing,
+  store:    BRAND_EMOJI.store,
 };
-
-const TICKET_BANNER_GIF = "https://res.cloudinary.com/db4mpxc2k/image/upload/v1777332752/toxic_skull_banner_dumql1.gif";
 
 /** Ticket categories */
 export const TICKET_CATEGORIES = [
@@ -70,14 +68,14 @@ export const ticketCommand = {
       // GIF banner at the top
       container.addMediaGalleryComponents(
         new MediaGalleryBuilder().addItems(
-          new MediaGalleryItemBuilder().setURL(TICKET_BANNER_GIF)
+          new MediaGalleryItemBuilder().setURL(BANNER_GIF)
         )
       );
 
       // Header text with logo emoji
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# <:${EMOJI.logo.name}:${EMOJI.logo.id}> Support Center\nWelcome to **${APP_NAME}**\n-# Select the option that best matches your needs.`
+          `# ${LOGO} Support Center\nWelcome to **${APP_NAME}**\n-# Select the option that best matches your needs.`
         )
       );
 
@@ -121,7 +119,7 @@ export const ticketCommand = {
       // Footer text
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `-# 📬 Our support team usually responds within **5–30 minutes**.`
+          `-# 📬 Our support team usually responds within **5–30 minutes**. • ${LOGO} ${APP_NAME}`
         )
       );
 
@@ -188,14 +186,14 @@ export async function createTicket(guild: any, userId: string, username: string,
   // Category banner image
   ticketContainer.addMediaGalleryComponents(
     new MediaGalleryBuilder().addItems(
-      new MediaGalleryItemBuilder().setURL(TICKET_BANNER_GIF)
+      new MediaGalleryItemBuilder().setURL(BANNER_GIF)
     )
   );
 
   // Header
   ticketContainer.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `# ${catEmojiStr} Ticket Opened\n**Category:** ${catLabel}`
+      `# ${LOGO} Ticket Opened\n**Category:** ${catEmojiStr} ${catLabel}`
     )
   );
 
@@ -250,7 +248,7 @@ export async function createTicket(guild: any, userId: string, username: string,
   // Footer
   ticketContainer.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# <:${EMOJI.logo.name}:${EMOJI.logo.id}> ${APP_NAME} • ${BOT_FOOTER}`
+      `-# ${LOGO} ${APP_NAME} • ${BOT_FOOTER}`
     )
   );
 

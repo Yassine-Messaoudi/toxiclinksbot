@@ -139,6 +139,34 @@ const commands = [
     .setDescription("Clear messages (by number or all)")
     .addIntegerOption((opt) => opt.setName("amount").setDescription("Number of messages to clear (1-100)").setRequired(false).setMinValue(1).setMaxValue(100))
     .addBooleanOption((opt) => opt.setName("all").setDescription("Clear ALL messages in the channel").setRequired(false)),
+
+  // ── Panels ──
+  new SlashCommandBuilder()
+    .setName("panel")
+    .setDescription("Send branded panels to channels (staff only)")
+    .addSubcommand((sub) => sub.setName("rules").setDescription("Send the server rules panel"))
+    .addSubcommand((sub) => sub.setName("pricing").setDescription("Send the pricing panel"))
+    .addSubcommand((sub) => sub.setName("chat").setDescription("Send the chat welcome panel")),
+
+  // ── Asset Scraper ──
+  new SlashCommandBuilder()
+    .setName("scrape")
+    .setDescription("Scrape assets from another server's channels (admin only)")
+    .addSubcommand((sub) =>
+      sub.setName("setup").setDescription("Create the assets category + channels in this server")
+    )
+    .addSubcommand((sub) =>
+      sub.setName("channel").setDescription("Scrape a single channel from another server")
+        .addStringOption((opt) => opt.setName("source_guild").setDescription("Source server ID").setRequired(true))
+        .addStringOption((opt) => opt.setName("source_channel").setDescription("Source channel ID").setRequired(true))
+        .addChannelOption((opt) => opt.setName("target_channel").setDescription("Target channel in this server").setRequired(true))
+        .addIntegerOption((opt) => opt.setName("limit").setDescription("Max messages to scan (default 100)").setRequired(false).setMinValue(1).setMaxValue(5000))
+    )
+    .addSubcommand((sub) =>
+      sub.setName("all").setDescription("Scrape all matching asset channels from another server")
+        .addStringOption((opt) => opt.setName("source_guild").setDescription("Source server ID").setRequired(true))
+        .addIntegerOption((opt) => opt.setName("limit").setDescription("Max messages per channel (default 100)").setRequired(false).setMinValue(1).setMaxValue(5000))
+    ),
 ].map((cmd) => cmd.toJSON());
 
 /** Return the serialised slash command array (used by index.ts auto-register) */

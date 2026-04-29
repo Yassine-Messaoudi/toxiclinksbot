@@ -117,6 +117,23 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
     return;
   }
 
+  // ── Rules panel → open ticket button ──
+  if (id === "rules_ticket") {
+    const guild = interaction.guild;
+    if (!guild) return;
+    try {
+      const result = await createTicket(guild, interaction.user.id, interaction.user.username, "support");
+      if (result.alreadyExists) {
+        await interaction.reply({ embeds: [errorEmbed(`You already have an open ticket: <#${result.channel.id}>`)], ephemeral: true });
+      } else {
+        await interaction.reply({ embeds: [successEmbed(`Ticket created: <#${result.channel.id}>`)], ephemeral: true });
+      }
+    } catch (err) {
+      await interaction.reply({ embeds: [errorEmbed(`Failed to create ticket: ${(err as Error).message}`)], ephemeral: true });
+    }
+    return;
+  }
+
   if (id === "ticket_close") {
     const channel = interaction.channel as TextChannel;
     if (!channel.topic?.includes("ticket for")) {

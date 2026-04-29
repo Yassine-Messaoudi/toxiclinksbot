@@ -1,7 +1,12 @@
-import { ChatInputCommandInteraction, GuildMember, Interaction, TextChannel, EmbedBuilder } from "discord.js";
+import {
+  ChatInputCommandInteraction, GuildMember, Interaction, TextChannel,
+  ContainerBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder, MessageFlags,
+} from "discord.js";
 import { isStaff } from "../utils/permissions";
 import { errorEmbed, successEmbed } from "../utils/embeds";
-import { BOT_COLOR, CHANNELS, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
+import { BOT_COLOR, CHANNELS, BOT_FOOTER, APP_NAME } from "../config";
+import { BANNER_GIF, LOGO } from "../utils/branding";
 
 export const announceCommand = {
   name: "announce",
@@ -31,30 +36,39 @@ export const announceCommand = {
       return;
     }
 
-    const embed = new EmbedBuilder()
-      .setColor(BOT_COLOR)
-      .setAuthor({
-        name: `${APP_NAME} — Announcement`,
-        iconURL: LOGO_URL,
-      })
-      .setTitle(`☠️  ${title}`)
-      .setDescription([
-        `*${LINE}*`,
-        "",
-        message,
-        "",
-        `*${LINE}*`,
-        "",
-        `> ⚡ *Announced by* **${cmd.user.tag}**`,
-      ].join("\n"))
-      .setThumbnail(SKULL_GIF_URL)
-      .setImage(SKULL_GIF_URL)
-      .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
-      .setTimestamp();
+    const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
+
+    // Banner
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+      )
+    );
+
+    // Title + body
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${LOGO} ${title}\n${message}`
+      )
+    );
+
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+    // Footer with author
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# ⚡ Announced by **${cmd.user.displayName}** • ${BOT_FOOTER}`
+      )
+    );
+
+    // Ping first if needed (content can't mix with Components V2)
+    if (ping) {
+      await channel.send("@everyone");
+    }
 
     await channel.send({
-      content: ping ? "@everyone" : undefined,
-      embeds: [embed],
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
     });
 
     await cmd.reply({ embeds: [successEmbed(`Announcement posted in <#${channelId}>`)], ephemeral: true });
