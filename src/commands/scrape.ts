@@ -95,22 +95,48 @@ function filenameFromUrl(url: string): string {
   }
 }
 
-/** Post a single asset to the target channel — always re-uploads as attachment for clean display */
-async function postAssetEmbed(
-  targetChannel: TextChannel,
-  url: string,
-): Promise<boolean> {
+/** Download a URL and return an AttachmentBuilder, or null on failure */
+async function downloadAttachment(url: string): Promise<AttachmentBuilder | null> {
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) return null;
     const buf = Buffer.from(await res.arrayBuffer());
     const name = filenameFromUrl(url);
-    const attachment = new AttachmentBuilder(buf, { name });
-    await targetChannel.send({ files: [attachment] });
-    return true;
+    return new AttachmentBuilder(buf, { name });
+  } catch {
+    return null;
+  }
+}
+
+/** Post a group of assets as ONE message (preserves source grouping / grid layout) */
+async function postAssetGroup(
+  targetChannel: TextChannel,
+  urls: string[],
+): Promise<number> {
+  try {
+    const attachments: AttachmentBuilder[] = [];
+    for (const url of urls) {
+      const att = await downloadAttachment(url);
+      if (att) attachments.push(att);
+    }
+    if (attachments.length === 0) return 0;
+
+    // Discord max 10 attachments per message & 25 MB total — split if needed
+    const chunks: AttachmentBuilder[][] = [];
+    for (let i = 0; i < attachments.length; i += 10) {
+      chunks.push(attachments.slice(i, i + 10));
+    }
+
+    let posted = 0;
+    for (const chunk of chunks) {
+      await targetChannel.send({ files: chunk });
+      posted += chunk.length;
+      if (chunks.length > 1) await new Promise(r => setTimeout(r, 800));
+    }
+    return posted;
   } catch (err) {
     console.error(`[Scrape] Failed to post to #${targetChannel.name}:`, err);
-    return false;
+    return 0;
   }
 }
 
@@ -154,12 +180,10 @@ async function scrapeChannel(
 
       if (urls.length === 0) continue;
 
-      for (const url of urls) {
-        if (activeScrapes.get(key)?.stopped) return { scanned: totalScanned, posted: totalPosted, stopped: true };
-        const ok = await postAssetEmbed(targetCh, url);
-        if (ok) totalPosted++;
-        await new Promise(r => setTimeout(r, 1200));
-      }
+      // Post all attachments from this source message as ONE grouped message
+      const posted = await postAssetGroup(targetCh, urls);
+      totalPosted += posted;
+      await new Promise(r => setTimeout(r, 1500));
     }
 
     lastId = messages.last()?.id;
@@ -437,13 +461,10 @@ export const scrapeCommand = {
 
             if (urls.length === 0) continue;
 
-            for (const url of urls) {
-              if (activeScrapes.get(key)?.stopped) { wasStopped = true; break; }
-              const ok = await postAssetEmbed(targetChannel, url);
-              if (ok) totalPosted++;
-              await new Promise(r => setTimeout(r, 1500));
-            }
-            if (wasStopped) break;
+            // Post all attachments from this source message as ONE grouped message
+            const posted = await postAssetGroup(targetChannel, urls);
+            totalPosted += posted;
+            await new Promise(r => setTimeout(r, 1500));
           }
 
           if (wasStopped) break;
