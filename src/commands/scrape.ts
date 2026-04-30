@@ -73,51 +73,40 @@ function errorContainer(message: string): ContainerBuilder {
   return c;
 }
 
-/** Audio/file extensions that must be re-uploaded as attachments */
-const REUPLOAD_EXTS = new Set([
-  ".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac", ".wma", ".opus",
-  ".mp4", ".mov", ".webm", ".avi", ".mkv",
-  ".ttf", ".otf", ".woff", ".woff2",
-  ".zip", ".rar", ".7z",
-]);
+/** Clean up ugly filenames — strip site prefixes, long IDs, etc. */
+function cleanFilename(raw: string): string {
+  let name = raw;
+  // Strip common site prefixes  (e.g. "SaveTik.io_", "SnapSave_", "ssstik.io_")
+  name = name.replace(/^(SaveTik\.io|SnapSave|ssstik\.io|SnapInsta\.app|ssyoutube|savefrom)[_\-]/i, "");
+  // Strip leading long numeric IDs (e.g. "7626789651642174740_")
+  name = name.replace(/^\d{10,}_/, "");
+  // Strip trailing Discord snowflake-style query params noise — already handled by URL parsing
+  return name || raw;
+}
 
 /** Extract a clean filename from a Discord CDN URL */
 function filenameFromUrl(url: string): string {
   try {
     const pathname = new URL(url).pathname;
     const decoded = decodeURIComponent(path.basename(pathname));
-    return decoded || "file";
+    return cleanFilename(decoded) || "file";
   } catch {
     return "file";
   }
 }
 
-/** Check if a URL points to a file type that needs re-upload */
-function needsReupload(url: string): boolean {
-  try {
-    const ext = path.extname(new URL(url).pathname).toLowerCase();
-    return REUPLOAD_EXTS.has(ext);
-  } catch {
-    return false;
-  }
-}
-
-/** Post a single asset to the target channel — re-uploads audio/video/font files */
+/** Post a single asset to the target channel — always re-uploads as attachment for clean display */
 async function postAssetEmbed(
   targetChannel: TextChannel,
   url: string,
 ): Promise<boolean> {
   try {
-    if (needsReupload(url)) {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const buf = Buffer.from(await res.arrayBuffer());
-      const name = filenameFromUrl(url);
-      const attachment = new AttachmentBuilder(buf, { name });
-      await targetChannel.send({ files: [attachment] });
-    } else {
-      await targetChannel.send({ content: url });
-    }
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    const name = filenameFromUrl(url);
+    const attachment = new AttachmentBuilder(buf, { name });
+    await targetChannel.send({ files: [attachment] });
     return true;
   } catch (err) {
     console.error(`[Scrape] Failed to post to #${targetChannel.name}:`, err);
