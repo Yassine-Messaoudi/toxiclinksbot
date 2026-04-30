@@ -1,14 +1,28 @@
-import { ButtonInteraction, EmbedBuilder, TextChannel } from "discord.js";
+import { ButtonInteraction, EmbedBuilder, TextChannel, MessageFlags } from "discord.js";
 import { activeGiveaways } from "../commands/giveaway";
 import { activePolls } from "../commands/poll";
+import { activeScrapes } from "../commands/scrape";
 import { createTicket } from "../commands/ticket";
-import { successEmbed, errorEmbed } from "../utils/embeds";
+import { successEmbed, errorEmbed, ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
 import { BOT_COLOR, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE_SHORT, APP_NAME } from "../config";
 
 const OPTION_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"];
 
 export async function handleButtonInteraction(interaction: ButtonInteraction) {
   const id = interaction.customId;
+
+  // ── Scrape stop button ──
+  if (id === "scrape_stop") {
+    const key = `${interaction.guildId}_${interaction.user.id}`;
+    const scrape = activeScrapes.get(key);
+    if (!scrape) {
+      await interaction.reply(ephemeralErrorV2("No active scrape to stop."));
+      return;
+    }
+    scrape.stopped = true;
+    await interaction.reply(ephemeralSuccessV2("⏹ Stopping scrape... it will finish the current item and stop."));
+    return;
+  }
 
   // ── Giveaway buttons ──
   if (id === "giveaway_enter") {

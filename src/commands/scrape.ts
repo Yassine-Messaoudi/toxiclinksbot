@@ -2,11 +2,11 @@ import {
   ChatInputCommandInteraction, Interaction, GuildMember, TextChannel,
   ContainerBuilder, TextDisplayBuilder, SeparatorBuilder,
   MediaGalleryBuilder, MediaGalleryItemBuilder,
+  ActionRowBuilder, ButtonBuilder, ButtonStyle,
   MessageFlags, PermissionFlagsBits, ChannelType, CategoryChannel,
-  EmbedBuilder, Message,
 } from "discord.js";
 import { BOT_COLOR, APP_NAME, BOT_FOOTER } from "../config";
-import { errorEmbed, successEmbed } from "../utils/embeds";
+import { ephemeralErrorV2 } from "../utils/embeds";
 import { BANNER_GIF, LOGO } from "../utils/branding";
 import { client } from "../index";
 
@@ -32,15 +32,52 @@ const ASSET_EMOJI: Record<string, string> = {
   "custom-fonts": "🔤",
 };
 
+/** Active scrape tracking — keyed by `guildId_userId` */
+export const activeScrapes = new Map<string, { stopped: boolean }>();
+
+function scrapeKey(guildId: string, userId: string) {
+  return `${guildId}_${userId}`;
+}
+
+/** Build a V2 status container with stop button */
+function statusContainer(text: string): ContainerBuilder {
+  const c = new ContainerBuilder().setAccentColor(BOT_COLOR);
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${LOGO} Scrape\n${text}`));
+  c.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder().setCustomId("scrape_stop").setLabel("⏹ Stop").setStyle(ButtonStyle.Danger)
+  );
+  c.addActionRowComponents(row);
+  c.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`));
+  return c;
+}
+
+/** Build a V2 completion container */
+function completionContainer(title: string, body: string): ContainerBuilder {
+  const c = new ContainerBuilder().setAccentColor(BOT_COLOR);
+  c.addMediaGalleryComponents(
+    new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(BANNER_GIF))
+  );
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${LOGO} ${title}\n${body}`));
+  c.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`));
+  return c;
+}
+
+/** Build a V2 error container (for editReply — no flags needed) */
+function errorContainer(message: string): ContainerBuilder {
+  const c = new ContainerBuilder().setAccentColor(0xff4444);
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ✖ Error\n${message}\n-# ${LOGO} ${BOT_FOOTER}`));
+  return c;
+}
+
 /** Post a single asset cleanly to the target channel */
 async function postAssetEmbed(
   targetChannel: TextChannel,
   url: string,
-  _assetType?: string,
-  _credit?: string,
 ): Promise<boolean> {
   try {
-    // Just post the URL — Discord auto-embeds images and videos
     await targetChannel.send({ content: url });
     return true;
   } catch (err) {
@@ -49,19 +86,22 @@ async function postAssetEmbed(
   }
 }
 
-/** Scrape a source channel and post formatted embeds to target */
+/** Scrape a source channel and post to target — checks stop flag */
 async function scrapeChannel(
   sourceCh: TextChannel,
   targetCh: TextChannel,
-  assetType: string,
+  _assetType: string,
   limit: number,
-): Promise<{ scanned: number; posted: number }> {
+  key: string,
+): Promise<{ scanned: number; posted: number; stopped: boolean }> {
   let totalPosted = 0;
   let totalScanned = 0;
   let lastId: string | undefined;
   let remaining = Math.min(limit, 5000);
 
   while (remaining > 0) {
+    if (activeScrapes.get(key)?.stopped) return { scanned: totalScanned, posted: totalPosted, stopped: true };
+
     const batchSize = Math.min(remaining, 100);
     const messages = await sourceCh.messages.fetch({
       limit: batchSize,
@@ -71,15 +111,14 @@ async function scrapeChannel(
     if (messages.size === 0) break;
 
     for (const [, msg] of messages) {
+      if (activeScrapes.get(key)?.stopped) return { scanned: totalScanned, posted: totalPosted, stopped: true };
+
       totalScanned++;
       const urls: string[] = [];
-      const credit = msg.author?.username || undefined;
 
-      // Collect attachment URLs
       for (const att of msg.attachments.values()) {
         urls.push(att.url);
       }
-      // Collect embed images (some bots post images as embeds)
       for (const embed of msg.embeds) {
         if (embed.image?.url) urls.push(embed.image.url);
         if (embed.thumbnail?.url && !embed.image) urls.push(embed.thumbnail.url);
@@ -88,9 +127,9 @@ async function scrapeChannel(
       if (urls.length === 0) continue;
 
       for (const url of urls) {
-        const ok = await postAssetEmbed(targetCh, url, assetType, credit);
+        if (activeScrapes.get(key)?.stopped) return { scanned: totalScanned, posted: totalPosted, stopped: true };
+        const ok = await postAssetEmbed(targetCh, url);
         if (ok) totalPosted++;
-        // Rate limit protection: 1s between posts
         await new Promise(r => setTimeout(r, 1200));
       }
     }
@@ -103,7 +142,7 @@ async function scrapeChannel(
     }
   }
 
-  return { scanned: totalScanned, posted: totalPosted };
+  return { scanned: totalScanned, posted: totalPosted, stopped: false };
 }
 
 export const scrapeCommand = {
@@ -114,19 +153,23 @@ export const scrapeCommand = {
 
     const member = cmd.member as GuildMember;
     if (!member.permissions.has(PermissionFlagsBits.Administrator)) {
-      await cmd.reply({ embeds: [errorEmbed("Admin only. This command scrapes assets from other servers.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("Admin only. This command scrapes assets from other servers."));
       return;
     }
 
     const sub = cmd.options.getSubcommand();
+    const key = scrapeKey(cmd.guildId!, cmd.user.id);
 
     // ─── /scrape setup ───
     if (sub === "setup") {
-      await cmd.deferReply({ ephemeral: true });
+      // Reply immediately with V2 status
+      await cmd.reply({
+        components: [statusContainer("⏳ Setting up asset channels...")],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      });
 
       const guild = cmd.guild!;
 
-      // Find or create "assets" category
       let category = guild.channels.cache.find(
         (c) => c.type === ChannelType.GuildCategory && c.name.toLowerCase() === "assets"
       ) as CategoryChannel | undefined;
@@ -159,22 +202,14 @@ export const scrapeCommand = {
         }
       }
 
-      const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
-      container.addMediaGalleryComponents(
-        new MediaGalleryBuilder().addItems(
-          new MediaGalleryItemBuilder().setURL(BANNER_GIF)
-        )
-      );
-      container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `# ${LOGO} Asset Channels Ready\n` +
+      await cmd.editReply({
+        components: [completionContainer(
+          "Asset Channels Ready",
           (created.length ? `**Created:** ${created.map(c => `#${c}`).join(", ")}\n` : "") +
           (existing.length ? `**Already existed:** ${existing.map(c => `#${c}`).join(", ")}\n` : "") +
           `\n-# Category: **${category.name}** • ${ASSET_CHANNELS.length} channels`
-        )
-      );
-
-      await cmd.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+        )],
+      });
       return;
     }
 
@@ -185,49 +220,41 @@ export const scrapeCommand = {
       const targetChannel = cmd.options.getChannel("target_channel", true) as TextChannel;
       const limit = cmd.options.getInteger("limit") || 100;
 
-      await cmd.deferReply({ ephemeral: true });
-
       const sourceGuild = client.guilds.cache.get(sourceGuildId);
       if (!sourceGuild) {
-        await cmd.editReply({ embeds: [errorEmbed(`Bot is not in guild \`${sourceGuildId}\`. Add the bot to the source server first.`)] });
+        await cmd.reply(ephemeralErrorV2(`Bot is not in guild \`${sourceGuildId}\`. Add the bot to the source server first.`));
         return;
       }
 
       const sourceCh = sourceGuild.channels.cache.get(sourceChannelId);
       if (!sourceCh || sourceCh.type !== ChannelType.GuildText) {
-        await cmd.editReply({ embeds: [errorEmbed(`Channel \`${sourceChannelId}\` not found or not a text channel in **${sourceGuild.name}**.`)] });
+        await cmd.reply(ephemeralErrorV2(`Channel \`${sourceChannelId}\` not found or not a text channel in **${sourceGuild.name}**.`));
         return;
       }
 
       const sourceTextCh = sourceCh as TextChannel;
-      // Detect asset type from target channel name
       const assetType = ASSET_CHANNELS.find(n => targetChannel.name.includes(n)) || targetChannel.name;
 
-      await cmd.editReply({ embeds: [successEmbed(`⏳ Scraping **#${sourceTextCh.name}** from **${sourceGuild.name}**...\nPosting to <#${targetChannel.id}> as branded embeds. This may take a while.`)] });
+      // Reply with V2 status + stop button
+      activeScrapes.set(key, { stopped: false });
+      await cmd.reply({
+        components: [statusContainer(`⏳ Scraping **#${sourceTextCh.name}** from **${sourceGuild.name}**...\nPosting to <#${targetChannel.id}>. This may take a while.`)],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      });
 
-      const result = await scrapeChannel(sourceTextCh, targetChannel, assetType, limit);
+      const result = await scrapeChannel(sourceTextCh, targetChannel, assetType, limit, key);
+      activeScrapes.delete(key);
 
-      const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
-      container.addMediaGalleryComponents(
-        new MediaGalleryBuilder().addItems(
-          new MediaGalleryItemBuilder().setURL(BANNER_GIF)
-        )
-      );
-      container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `# ${LOGO} Scrape Complete\n` +
+      await cmd.editReply({
+        components: [completionContainer(
+          result.stopped ? "Scrape Stopped" : "Scrape Complete",
           `**Source:** ${sourceGuild.name} → #${sourceTextCh.name}\n` +
           `**Target:** <#${targetChannel.id}>\n` +
           `**Messages scanned:** ${result.scanned.toLocaleString()}\n` +
-          `**Assets posted:** ${result.posted.toLocaleString()}`
-        )
-      );
-      container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-      container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
-      );
-
-      await cmd.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+          `**Assets posted:** ${result.posted.toLocaleString()}` +
+          (result.stopped ? "\n\n⏹ *Stopped by user*" : "")
+        )],
+      });
       return;
     }
 
@@ -236,11 +263,9 @@ export const scrapeCommand = {
       const sourceGuildId = cmd.options.getString("source_guild", true);
       const limit = cmd.options.getInteger("limit") || 100;
 
-      await cmd.deferReply({ ephemeral: true });
-
       const sourceGuild = client.guilds.cache.get(sourceGuildId);
       if (!sourceGuild) {
-        await cmd.editReply({ embeds: [errorEmbed(`Bot is not in guild \`${sourceGuildId}\`. Add the bot to the source server first.`)] });
+        await cmd.reply(ephemeralErrorV2(`Bot is not in guild \`${sourceGuildId}\`. Add the bot to the source server first.`));
         return;
       }
 
@@ -251,7 +276,7 @@ export const scrapeCommand = {
       ) as CategoryChannel | undefined;
 
       if (!assetsCategory) {
-        await cmd.editReply({ embeds: [errorEmbed("No **assets** category found. Run `/scrape setup` first.")] });
+        await cmd.reply(ephemeralErrorV2("No **assets** category found. Run `/scrape setup` first."));
         return;
       }
 
@@ -259,12 +284,20 @@ export const scrapeCommand = {
         (c) => c.type === ChannelType.GuildCategory && c.name.toLowerCase() === "assets"
       ) as CategoryChannel | undefined;
 
+      // Reply with V2 status + stop button
+      activeScrapes.set(key, { stopped: false });
+      await cmd.reply({
+        components: [statusContainer(`⏳ Scraping all asset channels from **${sourceGuild.name}**...\nThis may take several minutes.`)],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      });
+
       const results: { name: string; scanned: number; posted: number }[] = [];
       let grandTotal = 0;
-
-      await cmd.editReply({ embeds: [successEmbed(`⏳ Scraping all asset channels from **${sourceGuild.name}**...\nThis may take several minutes.`)] });
+      let wasStopped = false;
 
       for (const assetName of ASSET_CHANNELS) {
+        if (activeScrapes.get(key)?.stopped) { wasStopped = true; break; }
+
         const sourceCh = sourceGuild.channels.cache.find(
           (c) => c.type === ChannelType.GuildText && c.name === assetName &&
             (sourceAssetCategory ? c.parentId === sourceAssetCategory.id : true)
@@ -278,36 +311,27 @@ export const scrapeCommand = {
 
         if (!targetCh) continue;
 
-        const result = await scrapeChannel(sourceCh, targetCh, assetName, limit);
+        const result = await scrapeChannel(sourceCh, targetCh, assetName, limit, key);
         results.push({ name: assetName, ...result });
         grandTotal += result.posted;
+        if (result.stopped) { wasStopped = true; break; }
       }
 
-      const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
-      container.addMediaGalleryComponents(
-        new MediaGalleryBuilder().addItems(
-          new MediaGalleryItemBuilder().setURL(BANNER_GIF)
-        )
-      );
+      activeScrapes.delete(key);
 
       const resultLines = results.length
         ? results.map(r => `> ${ASSET_EMOJI[r.name] || "📦"} **#${r.name}** — ${r.posted} assets (${r.scanned} scanned)`).join("\n")
         : "> No matching channels found.";
 
-      container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `# ${LOGO} Full Scrape Complete\n` +
+      await cmd.editReply({
+        components: [completionContainer(
+          wasStopped ? "Full Scrape Stopped" : "Full Scrape Complete",
           `**Source server:** ${sourceGuild.name}\n` +
           `**Total assets posted:** ${grandTotal.toLocaleString()}\n\n` +
-          resultLines
-        )
-      );
-      container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-      container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
-      );
-
-      await cmd.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+          resultLines +
+          (wasStopped ? "\n\n⏹ *Stopped by user*" : "")
+        )],
+      });
       return;
     }
 
@@ -318,25 +342,31 @@ export const scrapeCommand = {
       const limit = cmd.options.getInteger("limit") || 100;
       const assetType = cmd.options.getString("asset_type") || "backgrounds";
 
-      await cmd.deferReply({ ephemeral: true });
-
       const userToken = process.env.DISCORD_USER_TOKEN;
       if (!userToken) {
-        await cmd.editReply({ embeds: [errorEmbed("**DISCORD_USER_TOKEN** not set in `.env`. Add your user token to scrape external servers.")] });
+        await cmd.reply(ephemeralErrorV2("**DISCORD_USER_TOKEN** not set in `.env`. Add your user token to scrape external servers."));
         return;
       }
 
       const emoji = ASSET_EMOJI[assetType] || "📦";
 
-      await cmd.editReply({ embeds: [successEmbed(`⏳ Fetching messages from channel \`${sourceChannelId}\` via HTTP API...\nPosting ${emoji} **${assetType}** to <#${targetChannel.id}>.`)] });
+      // Reply with V2 status + stop button
+      activeScrapes.set(key, { stopped: false });
+      await cmd.reply({
+        components: [statusContainer(`⏳ Fetching messages from channel \`${sourceChannelId}\` via HTTP API...\nPosting ${emoji} **${assetType}** to <#${targetChannel.id}>.`)],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      });
 
       let totalPosted = 0;
       let totalScanned = 0;
       let lastId: string | undefined;
       let remaining = Math.min(limit, 5000);
+      let wasStopped = false;
 
       try {
         while (remaining > 0) {
+          if (activeScrapes.get(key)?.stopped) { wasStopped = true; break; }
+
           const batchSize = Math.min(remaining, 100);
           let apiUrl = `https://discord.com/api/v10/channels/${sourceChannelId}/messages?limit=${batchSize}`;
           if (lastId) apiUrl += `&before=${lastId}`;
@@ -350,7 +380,8 @@ export const scrapeCommand = {
 
           if (!res.ok) {
             const errText = await res.text();
-            await cmd.editReply({ embeds: [errorEmbed(`Discord API error (${res.status}): ${errText.slice(0, 200)}`)] });
+            activeScrapes.delete(key);
+            await cmd.editReply({ components: [errorContainer(`Discord API error (${res.status}): ${errText.slice(0, 200)}`)] });
             return;
           }
 
@@ -358,18 +389,17 @@ export const scrapeCommand = {
           if (messages.length === 0) break;
 
           for (const msg of messages) {
+            if (activeScrapes.get(key)?.stopped) { wasStopped = true; break; }
+
             totalScanned++;
             const urls: string[] = [];
-            const credit = msg.author?.username || undefined;
 
-            // Attachments
             if (msg.attachments) {
               for (const att of msg.attachments) {
                 if (att.url) urls.push(att.url);
               }
             }
 
-            // Embeds with images
             if (msg.embeds) {
               for (const embed of msg.embeds) {
                 if (embed.image?.url) urls.push(embed.image.url);
@@ -380,11 +410,15 @@ export const scrapeCommand = {
             if (urls.length === 0) continue;
 
             for (const url of urls) {
-              const ok = await postAssetEmbed(targetChannel, url, assetType, credit);
+              if (activeScrapes.get(key)?.stopped) { wasStopped = true; break; }
+              const ok = await postAssetEmbed(targetChannel, url);
               if (ok) totalPosted++;
               await new Promise(r => setTimeout(r, 1500));
             }
+            if (wasStopped) break;
           }
+
+          if (wasStopped) break;
 
           lastId = messages[messages.length - 1]?.id;
           remaining -= messages.length;
@@ -395,31 +429,23 @@ export const scrapeCommand = {
         }
       } catch (err: any) {
         console.error("[Scrape Fetch] Error:", err);
-        await cmd.editReply({ embeds: [errorEmbed(`Fetch error: ${err.message?.slice(0, 200)}`)] });
+        activeScrapes.delete(key);
+        await cmd.editReply({ components: [errorContainer(`Fetch error: ${err.message?.slice(0, 200)}`)] });
         return;
       }
 
-      const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
-      container.addMediaGalleryComponents(
-        new MediaGalleryBuilder().addItems(
-          new MediaGalleryItemBuilder().setURL(BANNER_GIF)
-        )
-      );
-      container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `# ${LOGO} HTTP Scrape Complete\n` +
+      activeScrapes.delete(key);
+
+      await cmd.editReply({
+        components: [completionContainer(
+          wasStopped ? "HTTP Scrape Stopped" : "HTTP Scrape Complete",
           `**Source channel:** \`${sourceChannelId}\`\n` +
           `**Target:** <#${targetChannel.id}>\n` +
           `**Messages scanned:** ${totalScanned.toLocaleString()}\n` +
-          `**Assets posted:** ${totalPosted.toLocaleString()}`
-        )
-      );
-      container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-      container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
-      );
-
-      await cmd.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+          `**Assets posted:** ${totalPosted.toLocaleString()}` +
+          (wasStopped ? "\n\n⏹ *Stopped by user*" : "")
+        )],
+      });
       return;
     }
   },
