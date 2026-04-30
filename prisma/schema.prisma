@@ -129,6 +129,7 @@ enum BadgeType {
   EARLY_SUPPORTER
   DISCORD_ROLE
   DISCORD_MEMBER
+  BOOSTER
 }
 
 enum PaymentStatus {

@@ -44,7 +44,7 @@ import { handlePresenceUpdate } from "./events/presenceUpdate";
 import { handleUserUpdate } from "./events/userUpdate";
 import { handleGuildMemberAdd } from "./events/guildMemberAdd";
 import { handleGuildMemberRemove } from "./events/guildMemberRemove";
-import { handleGuildMemberUpdate } from "./events/guildMemberUpdate";
+import { handleGuildMemberUpdate, syncAllBoosterBadges } from "./events/guildMemberUpdate";
 import { handleButtonInteraction } from "./events/interactionButtons";
 
 // ── Utils ──
@@ -115,6 +115,16 @@ client.once(Events.ClientReady, async (readyClient) => {
 
   initLogger(client);
   logText(`🟢 **${APP_NAME} Bot** is online! (${commands.size} commands)`);
+
+  // ── Sync booster badges on startup ──
+  if (GUILD_ID) {
+    const guild = readyClient.guilds.cache.get(GUILD_ID);
+    if (guild) {
+      syncAllBoosterBadges(guild, prisma).catch((err) =>
+        console.error("[Bot] Booster badge startup sync failed:", err)
+      );
+    }
+  }
 
   // ── Status rotation ──
   const statuses = [
@@ -202,7 +212,7 @@ client.on(Events.GuildMemberRemove, (member) => {
 // ── Member update / boost detection (own guild only) ──
 client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
   if (GUILD_ID && newMember.guild.id !== GUILD_ID) return;
-  handleGuildMemberUpdate(oldMember, newMember, client);
+  handleGuildMemberUpdate(oldMember, newMember, client, prisma);
 });
 
 // ── Login ──
