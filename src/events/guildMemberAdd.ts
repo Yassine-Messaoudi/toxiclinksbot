@@ -5,13 +5,16 @@ import {
 } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 import { CHANNELS, ROLES, BOT_COLOR, APP_URL, BOT_FOOTER, APP_NAME } from "../config";
-import { BANNER_GIF, LOGO, EMOJI } from "../utils/branding";
+import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji, guildEmojiObj } from "../utils/branding";
 import { logText } from "../utils/logger";
 
 const prisma = new PrismaClient();
 
+/** Connected role — auto-assigned when user has linked Discord to website */
+const CONNECTED_ROLE = "1498312560104050690";
+
 export async function handleGuildMemberAdd(member: GuildMember, client: Client) {
-  // Auto-grant DISCORD_MEMBER badge if they have a ToxicLinks account
+  // Auto-grant DISCORD_MEMBER badge + connected role if they have a ToxicLinks account
   try {
     const connection = await prisma.discordConnection.findUnique({
       where: { discordId: member.id },
@@ -24,6 +27,10 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
         update: {},
       });
       console.log(`[Bot] Granted DISCORD_MEMBER badge to user ${connection.userId}`);
+      // Auto-assign connected role
+      if (CONNECTED_ROLE) {
+        try { await member.roles.add(CONNECTED_ROLE); } catch {}
+      }
     }
   } catch (err) {
     console.warn("[Bot] Failed to grant DISCORD_MEMBER badge:", (err as Error).message);
@@ -48,7 +55,12 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   const ordinal = getOrdinal(memberCount);
   const createdDays = Math.floor((Date.now() - member.user.createdTimestamp) / 86400000);
   const avatarUrl = member.user.displayAvatarURL({ size: 512 });
+  const guild = member.guild;
   const logoEmoji = LOGO;
+  const eWebsite = guildEmoji(guild, EMOJI_NAMES.website, "🌐");
+  const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp, "🎫");
+  const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg, "⚡");
+  const eNote = guildEmoji(guild, EMOJI_NAMES.note, "📜");
 
   // ── Components V2: Welcome Container ──
   const container = new ContainerBuilder()
@@ -91,7 +103,7 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   const rulesSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `### 📜 Read the Rules\n` +
+        `### ${eNote} Read the Rules\n` +
         `-# Get familiar with our community guidelines.`
       )
     )
@@ -99,43 +111,39 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
       new ButtonBuilder()
         .setCustomId("welcome_rules")
         .setLabel("Rules")
-        .setEmoji("📜")
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(true)
     );
   container.addSectionComponents(rulesSection);
 
-  // Quick links section — Chat
-  const chatSection = new SectionBuilder()
+  // Quick links section — Website
+  const websiteSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `### 💬 Start Chatting\n` +
-        `-# Jump into the conversation with the community.`
+        `### ${eWebsite} Visit Website\n` +
+        `-# Check out ${APP_NAME} and explore the platform.`
       )
     )
     .setButtonAccessory(
       new ButtonBuilder()
-        .setCustomId("welcome_chat")
-        .setLabel("Chat")
-        .setEmoji("💬")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true)
+        .setURL(APP_URL)
+        .setLabel("Website")
+        .setStyle(ButtonStyle.Link)
     );
-  container.addSectionComponents(chatSection);
+  container.addSectionComponents(websiteSection);
 
   // Quick links section — Create Profile (link button)
   const profileSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `### ⚡ Create Your Profile\n` +
+        `### ${eLogoNoBg} Create Your Profile\n` +
         `-# Build your toxic bio link page.`
       )
     )
     .setButtonAccessory(
       new ButtonBuilder()
-        .setURL(`${APP_URL}/auth/signin`)
+        .setURL(`${APP_URL}/register`)
         .setLabel("Create Profile")
-        .setEmoji("☠️")
         .setStyle(ButtonStyle.Link)
     );
   container.addSectionComponents(profileSection);
@@ -144,7 +152,7 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   const supportSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `### 🎫 Need Help?\n` +
+        `### ${eSupport} Need Help?\n` +
         `-# Open a ticket and our team will assist you.`
       )
     )
@@ -152,7 +160,6 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
       new ButtonBuilder()
         .setCustomId("welcome_support")
         .setLabel("Support")
-        .setEmoji("🎫")
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(true)
     );

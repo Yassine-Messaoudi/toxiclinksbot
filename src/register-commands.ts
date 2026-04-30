@@ -242,6 +242,11 @@ const commands = [
         )
         .addIntegerOption((opt) => opt.setName("limit").setDescription("Max messages to scan (default 100)").setRequired(false).setMinValue(1).setMaxValue(5000))
     ),
+
+  // ── Website Panel ──
+  new SlashCommandBuilder()
+    .setName("website")
+    .setDescription("Post the website info panel with links (Staff only)"),
 ].map((cmd) => cmd.toJSON());
 
 /** Return the serialised slash command array (used by index.ts auto-register) */

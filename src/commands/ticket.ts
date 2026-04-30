@@ -10,7 +10,7 @@ import path from "path";
 import { BOT_COLOR, CHANNELS, ROLES, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
 import { errorEmbed, successEmbed, toxicEmbed } from "../utils/embeds";
 import { logToChannel } from "../utils/logger";
-import { BANNER_GIF, LOGO, EMOJI as BRAND_EMOJI } from "../utils/branding";
+import { BANNER_GIF, LOGO, EMOJI as BRAND_EMOJI, EMOJI_NAMES, guildEmoji, guildEmojiObj } from "../utils/branding";
 
 /** Path to img folder */
 export const IMG_DIR = path.join(__dirname, "..", "..", "img");
@@ -24,7 +24,7 @@ export const CATEGORY_IMAGES: Record<string, string> = {
   billing:  "purshacebilling.png",
 };
 
-/** Local emoji aliases (ticket-specific categories use brand + local) */
+/** Local emoji aliases (ticket-specific categories use brand + local as fallback) */
 const EMOJI = {
   ...BRAND_EMOJI,
   support:  BRAND_EMOJI.support,
@@ -34,6 +34,24 @@ const EMOJI = {
   billing:  BRAND_EMOJI.billing,
   store:    BRAND_EMOJI.store,
 };
+
+/** Resolve ticket category emoji from guild cache, with hardcoded fallback */
+function resolveTicketEmoji(guild: any, key: string): { id: string; name: string } {
+  const nameMap: Record<string, string> = {
+    support: EMOJI_NAMES.support,
+    report: EMOJI_NAMES.needhelp,
+    account: EMOJI_NAMES.accountRecovery,
+    verified: EMOJI_NAMES.verified,
+    billing: EMOJI_NAMES.billing,
+  };
+  const emojiName = nameMap[key];
+  if (emojiName && guild) {
+    const resolved = guildEmojiObj(guild, emojiName);
+    if (resolved) return resolved;
+  }
+  const fallback = (EMOJI as any)[key];
+  return fallback || BRAND_EMOJI.support;
+}
 
 /** Ticket categories */
 export const TICKET_CATEGORIES = [
@@ -84,20 +102,24 @@ export const ticketCommand = {
         new SeparatorBuilder().setDivider(true)
       );
 
+      const guild = cmd.guild;
+
       // Section per category: text on the left, button on the right
       for (let i = 0; i < TICKET_CATEGORIES.length; i++) {
         const cat = TICKET_CATEGORIES[i];
+        const resolvedEmoji = resolveTicketEmoji(guild, cat.value);
+        const emojiStr = `<:${resolvedEmoji.name}:${resolvedEmoji.id}>`;
         const section = new SectionBuilder()
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `### ${cat.question}\n-# Press **${cat.label}** to open the matching ticket flow.`
+              `### ${emojiStr} ${cat.question}\n-# Press **${cat.label}** to open the matching ticket flow.`
             )
           )
           .setButtonAccessory(
             new ButtonBuilder()
               .setCustomId(`ticket_cat_${cat.value}`)
               .setLabel(cat.label)
-              .setEmoji(cat.emoji)
+              .setEmoji(resolvedEmoji)
               .setStyle(ButtonStyle.Success)
           );
 
@@ -163,7 +185,7 @@ export async function createTicket(guild: any, userId: string, username: string,
 
   const catInfo = TICKET_CATEGORIES.find(c => c.value === category);
   const catLabel = catInfo?.label || "Support";
-  const catEmojiObj = catInfo?.emoji || EMOJI.support;
+  const catEmojiObj = resolveTicketEmoji(guild, category || "support");
   const catEmojiStr = `<:${catEmojiObj.name}:${catEmojiObj.id}>`;
   const catImageFile = CATEGORY_IMAGES[category || "support"] || "Support.png";
 
