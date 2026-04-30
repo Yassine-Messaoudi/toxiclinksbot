@@ -1,7 +1,7 @@
-import { ChatInputCommandInteraction, GuildMember, Interaction } from "discord.js";
+import { ChatInputCommandInteraction, GuildMember, Interaction, MessageFlags } from "discord.js";
 import { isMod, canModerate } from "../utils/permissions";
-import { errorEmbed, successEmbed, modLogEmbed } from "../utils/embeds";
-import { logToChannel } from "../utils/logger";
+import { ephemeralErrorV2, successV2, modLogV2, errorV2 } from "../utils/embeds";
+import { logContainerToChannel } from "../utils/logger";
 
 export const kickCommand = {
   name: "kick",
@@ -11,7 +11,7 @@ export const kickCommand = {
     const member = cmd.member as GuildMember;
 
     if (!isMod(member)) {
-      await cmd.reply({ embeds: [errorEmbed("You need moderator permissions.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("You need moderator permissions."));
       return;
     }
 
@@ -20,29 +20,34 @@ export const kickCommand = {
     const targetMember = cmd.guild?.members.cache.get(target.id);
 
     if (!targetMember) {
-      await cmd.reply({ embeds: [errorEmbed("User not found in this server.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("User not found in this server."));
       return;
     }
 
     if (!canModerate(member, targetMember)) {
-      await cmd.reply({ embeds: [errorEmbed("You can't kick someone with a higher role.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("You can't kick someone with a higher role."));
       return;
     }
 
     try {
       await target.send({
-        embeds: [errorEmbed(`You have been **kicked** from **${cmd.guild?.name}**\n\n**Reason:** ${reason}`)],
+        components: [errorV2(`You have been **kicked** from **${cmd.guild?.name}**\n\n**Reason:** ${reason}`)],
+        flags: MessageFlags.IsComponentsV2,
       });
     } catch {}
 
     try {
       await targetMember.kick(`${cmd.user.tag}: ${reason}`);
     } catch (err) {
-      await cmd.reply({ embeds: [errorEmbed(`Failed to kick: ${(err as Error).message}`)], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2(`Failed to kick: ${(err as Error).message}`));
       return;
     }
 
-    await cmd.reply({ embeds: [successEmbed(`**${target.tag}** has been kicked.\n**Reason:** ${reason}`)] });
-    await logToChannel(modLogEmbed({ action: "KICK", moderator: cmd.user, target, reason }));
+    await cmd.reply({
+      components: [successV2(`**${target.tag}** has been kicked.\n**Reason:** ${reason}`)],
+      flags: MessageFlags.IsComponentsV2,
+    });
+
+    await logContainerToChannel(modLogV2({ action: "KICK", moderator: cmd.user, target, reason }));
   },
 };

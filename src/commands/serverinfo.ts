@@ -1,5 +1,10 @@
-import { ChatInputCommandInteraction, EmbedBuilder, Interaction } from "discord.js";
-import { BOT_COLOR, BOT_FOOTER, LOGO_URL } from "../config";
+import {
+  ChatInputCommandInteraction, Interaction, MessageFlags,
+  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder, ThumbnailBuilder,
+} from "discord.js";
+import { BOT_COLOR, BOT_FOOTER } from "../config";
+import { BANNER_GIF, LOGO } from "../utils/branding";
 
 export const serverinfoCommand = {
   name: "serverinfo",
@@ -20,23 +25,54 @@ export const serverinfoCommand = {
     const voiceChannels = channels.filter(c => c.isVoiceBased()).size;
     const roles = guild.roles.cache.size - 1;
 
-    const embed = new EmbedBuilder()
-      .setColor(BOT_COLOR)
-      .setTitle(guild.name)
-      .setThumbnail(guild.iconURL({ size: 256 }) || "")
-      .addFields(
-        { name: "👥 Members", value: `**${guild.memberCount.toLocaleString()}** total\n${humans.toLocaleString()} humans • ${bots} bots\n${online.toLocaleString()} online`, inline: true },
-        { name: "💬 Channels", value: `${textChannels} text • ${voiceChannels} voice\n${channels.size} total`, inline: true },
-        { name: "🎭 Roles", value: `${roles}`, inline: true },
-        { name: "🚀 Boosts", value: `**${boosts}** (Level ${guild.premiumTier})`, inline: true },
-        { name: "👑 Owner", value: `<@${guild.ownerId}>`, inline: true },
-        { name: "📅 Created", value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true },
+    const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
+
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(BANNER_GIF)
       )
-      .setFooter({ text: `ID: ${guild.id} \u2022 ${BOT_FOOTER}`, iconURL: LOGO_URL })
-      .setTimestamp();
+    );
 
-    if (guild.bannerURL()) embed.setImage(guild.bannerURL({ size: 1024 })!);
+    const iconUrl = guild.iconURL({ size: 512 });
+    if (iconUrl) {
+      const headerSection = new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`# ${LOGO} ${guild.name}`)
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl));
+      container.addSectionComponents(headerSection);
+    } else {
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`# ${LOGO} ${guild.name}`)
+      );
+    }
 
-    await cmd.reply({ embeds: [embed] });
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `> 👥 **Members:** **${guild.memberCount.toLocaleString()}** total — ${humans.toLocaleString()} humans • ${bots} bots • ${online.toLocaleString()} online\n` +
+        `> 💬 **Channels:** ${textChannels} text • ${voiceChannels} voice — ${channels.size} total\n` +
+        `> 🎭 **Roles:** ${roles}\n` +
+        `> 🚀 **Boosts:** **${boosts}** (Level ${guild.premiumTier})\n` +
+        `> 👑 **Owner:** <@${guild.ownerId}>\n` +
+        `> 📅 **Created:** <t:${Math.floor(guild.createdTimestamp / 1000)}:R>`
+      )
+    );
+
+    if (guild.bannerURL()) {
+      container.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL(guild.bannerURL({ size: 1024 })!)
+        )
+      );
+    }
+
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# ${LOGO} ID: ${guild.id} • ${BOT_FOOTER}`)
+    );
+
+    await cmd.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
   },
 };

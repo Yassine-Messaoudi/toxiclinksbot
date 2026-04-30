@@ -32,62 +32,21 @@ const ASSET_EMOJI: Record<string, string> = {
   "custom-fonts": "🔤",
 };
 
-/** Post a single asset as a branded embed in the target channel */
+/** Post a single asset cleanly to the target channel */
 async function postAssetEmbed(
   targetChannel: TextChannel,
   url: string,
-  assetType: string,
-  credit?: string,
+  _assetType?: string,
+  _credit?: string,
 ): Promise<boolean> {
-  const emoji = ASSET_EMOJI[assetType] || "📦";
-  const isImage = /\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(url);
-  const isVideo = /\.(mp4|mov|webm)(\?.*)?$/i.test(url);
-  const isAudio = /\.(mp3|ogg|wav|flac|m4a)(\?.*)?$/i.test(url);
-
   try {
-    if (isImage) {
-      // Post as an embed with the image displayed
-      const embed = new EmbedBuilder()
-        .setColor(BOT_COLOR)
-        .setImage(url)
-        .setFooter({ text: `${emoji} ${assetType} • ${BOT_FOOTER}` })
-        .setTimestamp();
-
-      if (credit) embed.setDescription(`> Shared by **${credit}**`);
-
-      const msg = await targetChannel.send({ embeds: [embed] });
-      await addAssetReactions(msg);
-      return true;
-    }
-
-    if (isVideo || isAudio) {
-      // Videos and audio files can't be embedded — send as content + file URL
-      const label = isVideo ? "🎬 Video" : "🎵 Audio";
-      const msg = await targetChannel.send({
-        content: `${emoji} **${assetType.toUpperCase()}** — ${label}${credit ? ` • by **${credit}**` : ""}\n${url}`,
-      });
-      await addAssetReactions(msg);
-      return true;
-    }
-
-    // Fallback: just send with branding
-    const msg = await targetChannel.send({
-      content: `${emoji} **${assetType.toUpperCase()}**${credit ? ` • by **${credit}**` : ""}\n${url}`,
-    });
-    await addAssetReactions(msg);
+    // Just post the URL — Discord auto-embeds images and videos
+    await targetChannel.send({ content: url });
     return true;
   } catch (err) {
     console.error(`[Scrape] Failed to post to #${targetChannel.name}:`, err);
     return false;
   }
-}
-
-/** Add reactions to asset posts for engagement */
-async function addAssetReactions(msg: Message) {
-  try {
-    await msg.react("🔥");
-    await msg.react("💾");
-  } catch {}
 }
 
 /** Scrape a source channel and post formatted embeds to target */

@@ -1,6 +1,11 @@
-import { ChatInputCommandInteraction, Interaction, EmbedBuilder, TextChannel } from "discord.js";
-import { BOT_COLOR, CHANNELS, BOT_FOOTER, LOGO_URL } from "../config";
-import { errorEmbed, successEmbed } from "../utils/embeds";
+import {
+  ChatInputCommandInteraction, Interaction, TextChannel, MessageFlags,
+  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder,
+  ThumbnailBuilder,
+} from "discord.js";
+import { BOT_COLOR, CHANNELS, BOT_FOOTER } from "../config";
+import { ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
+import { LOGO } from "../utils/branding";
 
 export const suggestCommand = {
   name: "suggest",
@@ -12,28 +17,38 @@ export const suggestCommand = {
     const channelId = CHANNELS.SUGGESTIONS;
 
     if (!channelId) {
-      await cmd.reply({ embeds: [errorEmbed("Suggestions channel not configured.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("Suggestions channel not configured."));
       return;
     }
 
     const channel = cmd.guild?.channels.cache.get(channelId) as TextChannel | undefined;
     if (!channel) {
-      await cmd.reply({ embeds: [errorEmbed("Suggestions channel not found.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("Suggestions channel not found."));
       return;
     }
 
-    const embed = new EmbedBuilder()
-      .setColor(BOT_COLOR)
-      .setTitle("💡 New Suggestion")
-      .setDescription(idea)
-      .setAuthor({ name: cmd.user.tag, iconURL: cmd.user.displayAvatarURL() })
-      .setFooter({ text: `Vote with the reactions below • ${BOT_FOOTER}`, iconURL: LOGO_URL })
-      .setTimestamp();
+    const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
-    const msg = await channel.send({ embeds: [embed] });
+    const section = new SectionBuilder()
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `# 💡 Suggestion\n${idea}\n\n-# by **${cmd.user.displayName}** • Vote with reactions below`
+        )
+      )
+      .setThumbnailAccessory(
+        new ThumbnailBuilder().setURL(cmd.user.displayAvatarURL({ size: 256 }))
+      );
+    container.addSectionComponents(section);
+
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+    );
+
+    const msg = await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
     await msg.react("👍");
     await msg.react("👎");
 
-    await cmd.reply({ embeds: [successEmbed(`Your suggestion has been posted in <#${channelId}>!`)], ephemeral: true });
+    await cmd.reply(ephemeralSuccessV2(`Your suggestion has been posted in <#${channelId}>!`));
   },
 };

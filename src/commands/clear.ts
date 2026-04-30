@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, GuildMember, Interaction, TextChannel } from "discord.js";
 import { isMod } from "../utils/permissions";
-import { errorEmbed, successEmbed, modLogEmbed } from "../utils/embeds";
-import { logToChannel } from "../utils/logger";
+import { ephemeralErrorV2, ephemeralSuccessV2, modLogV2 } from "../utils/embeds";
+import { logContainerToChannel } from "../utils/logger";
 
 export const clearCommand = {
   name: "clear",
@@ -11,7 +11,7 @@ export const clearCommand = {
     const member = cmd.member as GuildMember;
 
     if (!isMod(member)) {
-      await cmd.reply({ embeds: [errorEmbed("You need moderator permissions.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("You need moderator permissions."));
       return;
     }
 
@@ -20,7 +20,7 @@ export const clearCommand = {
     const all = cmd.options.getBoolean("all") ?? false;
 
     if (!amount && !all) {
-      await cmd.reply({ embeds: [errorEmbed("Provide either an `amount` or use `all: True`.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("Provide either an `amount` or use `all: True`."));
       return;
     }
 
@@ -38,7 +38,6 @@ export const clearCommand = {
           const deleted = await channel.bulkDelete(fetched, true);
           totalDeleted += deleted.size;
 
-          // If bulkDelete returned fewer than fetched, remaining messages are >14 days old
           if (deleted.size < fetched.size || deleted.size === 0) {
             keepDeleting = false;
           }
@@ -47,9 +46,9 @@ export const clearCommand = {
         }
       }
 
-      await cmd.editReply({ embeds: [successEmbed(`Cleared **${totalDeleted}** messages from this channel.`)] });
+      await cmd.editReply(ephemeralSuccessV2(`Cleared **${totalDeleted}** messages from this channel.`));
 
-      await logToChannel(modLogEmbed({
+      await logContainerToChannel(modLogV2({
         action: "CLEAR ALL",
         moderator: cmd.user,
         target: cmd.user,
@@ -58,27 +57,23 @@ export const clearCommand = {
       return;
     }
 
-    // Clear specific number
     if (amount! < 1 || amount! > 100) {
-      await cmd.reply({ embeds: [errorEmbed("Amount must be between 1 and 100.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("Amount must be between 1 and 100."));
       return;
     }
 
     try {
       const deleted = await channel.bulkDelete(amount!, true);
-      await cmd.reply({
-        embeds: [successEmbed(`Cleared **${deleted.size}** messages.`)],
-        ephemeral: true,
-      });
+      await cmd.reply(ephemeralSuccessV2(`Cleared **${deleted.size}** messages.`));
 
-      await logToChannel(modLogEmbed({
+      await logContainerToChannel(modLogV2({
         action: "CLEAR",
         moderator: cmd.user,
         target: cmd.user,
         extra: `${deleted.size} messages in #${channel.name}`,
       }));
     } catch (err) {
-      await cmd.reply({ embeds: [errorEmbed(`Failed to clear: ${(err as Error).message}`)], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2(`Failed to clear: ${(err as Error).message}`));
     }
   },
 };

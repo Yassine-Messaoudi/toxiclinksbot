@@ -1,10 +1,13 @@
 import {
   ChatInputCommandInteraction, GuildMember, Interaction,
-  EmbedBuilder, TextChannel,
+  TextChannel, MessageFlags,
+  ContainerBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder,
 } from "discord.js";
 import { isStaff } from "../utils/permissions";
-import { errorEmbed, successEmbed } from "../utils/embeds";
+import { ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
 import { BOT_FOOTER } from "../config";
+import { LOGO } from "../utils/branding";
 
 export const embedCommand = {
   name: "embed",
@@ -14,7 +17,7 @@ export const embedCommand = {
     const member = cmd.member as GuildMember;
 
     if (!isStaff(member)) {
-      await cmd.reply({ embeds: [errorEmbed("Staff only command.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("Staff only command."));
       return;
     }
 
@@ -26,25 +29,38 @@ export const embedCommand = {
     const footerText = cmd.options.getString("footer") || BOT_FOOTER;
     const targetChannel = cmd.options.getChannel("channel") as TextChannel | null;
 
-    // Parse color
     const color = parseInt(colorHex.replace("#", ""), 16) || 0x39ff14;
 
-    const embed = new EmbedBuilder()
-      .setColor(color)
-      .setTitle(title)
-      .setDescription(description)
-      .setFooter({ text: footerText })
-      .setTimestamp();
+    const container = new ContainerBuilder().setAccentColor(color);
 
-    if (imageUrl) embed.setImage(imageUrl);
-    if (thumbnailUrl) embed.setThumbnail(thumbnailUrl);
+    if (imageUrl) {
+      container.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL(imageUrl)
+        )
+      );
+    }
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`# ${title}\n${description}`)
+    );
+
+    if (thumbnailUrl) {
+      container.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL(thumbnailUrl)
+        )
+      );
+    }
+
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# ${LOGO} ${footerText}`)
+    );
 
     const channel = targetChannel || (cmd.channel as TextChannel);
-    await channel.send({ embeds: [embed] });
+    await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
 
-    await cmd.reply({
-      embeds: [successEmbed(`Embed sent to <#${channel.id}>`)],
-      ephemeral: true,
-    });
+    await cmd.reply(ephemeralSuccessV2(`Embed sent to <#${channel.id}>`));
   },
 };

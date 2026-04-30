@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, GuildMember, Interaction, TextChannel } from "discord.js";
 import { isMod } from "../utils/permissions";
-import { errorEmbed, successEmbed, modLogEmbed } from "../utils/embeds";
-import { logToChannel } from "../utils/logger";
+import { ephemeralErrorV2, ephemeralSuccessV2, modLogV2 } from "../utils/embeds";
+import { logContainerToChannel } from "../utils/logger";
 
 export const purgeCommand = {
   name: "purge",
@@ -11,32 +11,29 @@ export const purgeCommand = {
     const member = cmd.member as GuildMember;
 
     if (!isMod(member)) {
-      await cmd.reply({ embeds: [errorEmbed("You need moderator permissions.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("You need moderator permissions."));
       return;
     }
 
     const amount = cmd.options.getInteger("amount", true);
     if (amount < 1 || amount > 100) {
-      await cmd.reply({ embeds: [errorEmbed("Amount must be between 1 and 100.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("Amount must be between 1 and 100."));
       return;
     }
 
     const channel = cmd.channel as TextChannel;
     try {
       const deleted = await channel.bulkDelete(amount, true);
-      await cmd.reply({
-        embeds: [successEmbed(`Deleted **${deleted.size}** messages.`)],
-        ephemeral: true,
-      });
+      await cmd.reply(ephemeralSuccessV2(`Deleted **${deleted.size}** messages.`));
 
-      await logToChannel(modLogEmbed({
+      await logContainerToChannel(modLogV2({
         action: "PURGE",
         moderator: cmd.user,
         target: cmd.user,
         extra: `${deleted.size} messages in #${channel.name}`,
       }));
     } catch (err) {
-      await cmd.reply({ embeds: [errorEmbed(`Failed to purge: ${(err as Error).message}`)], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2(`Failed to purge: ${(err as Error).message}`));
     }
   },
 };

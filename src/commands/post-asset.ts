@@ -73,37 +73,8 @@ export const postAssetCommand = {
       const isVideo = /\.(mp4|mov|webm)(\?.*)?$/i.test(url);
       const isAudio = /\.(mp3|ogg|wav|flac|m4a)(\?.*)?$/i.test(url);
 
-      const descParts: string[] = [];
-      if (title) descParts.push(`**${title}**`);
-      if (tags) descParts.push(`> Tags: ${tags.split(",").map(t => `\`${t.trim()}\``).join(" ")}`);
-      descParts.push(`> Posted by <@${cmd.user.id}>`);
-
-      if (isImage) {
-        const embed = new EmbedBuilder()
-          .setColor(BOT_COLOR)
-          .setDescription(descParts.join("\n"))
-          .setImage(url)
-          .setFooter({ text: `${assetInfo.emoji} ${assetInfo.name} • ${BOT_FOOTER}` })
-          .setTimestamp();
-
-        const msg = await targetCh.send({ embeds: [embed] });
-        try { await msg.react("🔥"); await msg.react("💾"); } catch {}
-      } else if (isVideo) {
-        const msg = await targetCh.send({
-          content: `${assetInfo.emoji} **${assetInfo.name.toUpperCase()}** — 🎬 Video\n${descParts.join("\n")}\n${url}`,
-        });
-        try { await msg.react("🔥"); await msg.react("💾"); } catch {}
-      } else if (isAudio) {
-        const msg = await targetCh.send({
-          content: `${assetInfo.emoji} **${assetInfo.name.toUpperCase()}** — 🎵 Audio\n${descParts.join("\n")}\n${url}`,
-        });
-        try { await msg.react("🔥"); await msg.react("💾"); } catch {}
-      } else {
-        const msg = await targetCh.send({
-          content: `${assetInfo.emoji} **${assetInfo.name.toUpperCase()}**\n${descParts.join("\n")}\n${url}`,
-        });
-        try { await msg.react("🔥"); await msg.react("💾"); } catch {}
-      }
+      // Just post the URL — Discord auto-embeds images/videos
+      await targetCh.send({ content: url });
 
       await cmd.editReply({ embeds: [successEmbed(`Asset posted to <#${targetCh.id}>!`)] });
       return;
@@ -153,31 +124,12 @@ export const postAssetCommand = {
 
       let posted = 0;
       for (const url of urls) {
-        const isImage = /\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(url);
-
         try {
-          if (isImage) {
-            const embed = new EmbedBuilder()
-              .setColor(BOT_COLOR)
-              .setDescription(`> Posted by <@${cmd.user.id}>`)
-              .setImage(url)
-              .setFooter({ text: `${assetInfo.emoji} ${assetInfo.name} • ${BOT_FOOTER}` })
-              .setTimestamp();
-
-            const msg = await targetCh.send({ embeds: [embed] });
-            try { await msg.react("🔥"); await msg.react("💾"); } catch {}
-          } else {
-            const msg = await targetCh.send({
-              content: `${assetInfo.emoji} **${assetInfo.name.toUpperCase()}**\n> Posted by <@${cmd.user.id}>\n${url}`,
-            });
-            try { await msg.react("🔥"); await msg.react("💾"); } catch {}
-          }
+          await targetCh.send({ content: url });
           posted++;
         } catch (err) {
           console.error(`[PostAsset] Failed to post:`, err);
         }
-
-        // Rate limit protection
         await new Promise(r => setTimeout(r, 1200));
       }
 
@@ -233,29 +185,10 @@ export const postAssetCommand = {
         return;
       }
 
-      const isImage = file.contentType?.startsWith("image/") || false;
-      const descParts: string[] = [];
-      if (title) descParts.push(`**${title}**`);
-      if (tags) descParts.push(`> Tags: ${tags.split(",").map(t => `\`${t.trim()}\``).join(" ")}`);
-      descParts.push(`> Posted by <@${cmd.user.id}>`);
-
-      if (isImage) {
-        const embed = new EmbedBuilder()
-          .setColor(BOT_COLOR)
-          .setDescription(descParts.join("\n"))
-          .setImage(file.url)
-          .setFooter({ text: `${assetInfo.emoji} ${assetInfo.name} • ${BOT_FOOTER}` })
-          .setTimestamp();
-
-        const msg = await targetCh.send({ embeds: [embed] });
-        try { await msg.react("🔥"); await msg.react("💾"); } catch {}
-      } else {
-        const msg = await targetCh.send({
-          content: `${assetInfo.emoji} **${assetInfo.name.toUpperCase()}**\n${descParts.join("\n")}`,
-          files: [{ attachment: file.url, name: file.name }],
-        });
-        try { await msg.react("🔥"); await msg.react("💾"); } catch {}
-      }
+      // Just post the file directly — clean, no extra text
+      await targetCh.send({
+        files: [{ attachment: file.url, name: file.name }],
+      });
 
       await cmd.editReply({ embeds: [successEmbed(`Asset uploaded and posted to <#${targetCh.id}>!`)] });
       return;

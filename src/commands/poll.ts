@@ -1,8 +1,11 @@
 import {
-  ChatInputCommandInteraction, Interaction, EmbedBuilder,
+  ChatInputCommandInteraction, Interaction, MessageFlags,
   ActionRowBuilder, ButtonBuilder, ButtonStyle,
+  ContainerBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder,
 } from "discord.js";
-import { BOT_COLOR, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE_SHORT, APP_NAME } from "../config";
+import { BOT_COLOR, BOT_FOOTER } from "../config";
+import { BANNER_GIF, LOGO } from "../utils/branding";
 
 /** In-memory poll store */
 export const activePolls = new Map<string, {
@@ -28,27 +31,24 @@ export const pollCommand = {
     const opt5 = cmd.options.getString("option5") || null;
 
     const options = [opt1, opt2, opt3, opt4, opt5].filter(Boolean) as string[];
+    const optionLines = options.map((opt, i) => `> ${OPTION_EMOJIS[i]} **${opt}** — \`0 votes\``).join("\n");
 
-    const description = options.map((opt, i) => `> ${OPTION_EMOJIS[i]} **${opt}** — \`0 votes\``).join("\n");
+    const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
-    const embed = new EmbedBuilder()
-      .setColor(BOT_COLOR)
-      .setAuthor({ name: `${APP_NAME} — Poll`, iconURL: LOGO_URL })
-      .setTitle(`☠️  ${question}`)
-      .setDescription([
-        `*${LINE_SHORT}*`,
-        "",
-        description,
-        "",
-        `*${LINE_SHORT}*`,
-        "",
-        `> ⚡ *Poll by* **${cmd.user.tag}** • \`0 total votes\``,
-      ].join("\n"))
-      .setThumbnail(SKULL_GIF_URL)
-      .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })
-      .setTimestamp();
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+      )
+    );
 
-    const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${LOGO} ${question}\n\n${optionLines}\n\n-# Poll by **${cmd.user.displayName}** • \`0 total votes\``
+      )
+    );
+
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
     const buttons: ButtonBuilder[] = options.map((opt, i) =>
       new ButtonBuilder()
         .setCustomId(`poll_vote_${i}`)
@@ -57,12 +57,21 @@ export const pollCommand = {
         .setStyle(ButtonStyle.Secondary)
     );
 
-    // Discord allows max 5 buttons per row
     for (let i = 0; i < buttons.length; i += 5) {
-      rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(i, i + 5)));
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(i, i + 5));
+      container.addActionRowComponents(row);
     }
 
-    const msg = await cmd.reply({ embeds: [embed], components: rows, fetchReply: true });
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+    );
+
+    const msg = await cmd.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      fetchReply: true,
+    });
 
     activePolls.set(msg.id, {
       question,

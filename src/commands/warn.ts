@@ -1,7 +1,7 @@
-import { ChatInputCommandInteraction, GuildMember, Interaction, PermissionFlagsBits } from "discord.js";
+import { ChatInputCommandInteraction, GuildMember, Interaction, MessageFlags } from "discord.js";
 import { isMod, canModerate } from "../utils/permissions";
-import { errorEmbed, successEmbed, modLogEmbed } from "../utils/embeds";
-import { logToChannel } from "../utils/logger";
+import { ephemeralErrorV2, successV2, modLogV2, errorV2 } from "../utils/embeds";
+import { logContainerToChannel } from "../utils/logger";
 
 export const warnCommand = {
   name: "warn",
@@ -11,7 +11,7 @@ export const warnCommand = {
     const member = cmd.member as GuildMember;
 
     if (!isMod(member)) {
-      await cmd.reply({ embeds: [errorEmbed("You need moderator permissions.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("You need moderator permissions."));
       return;
     }
 
@@ -20,27 +20,28 @@ export const warnCommand = {
     const targetMember = cmd.guild?.members.cache.get(target.id);
 
     if (target.id === cmd.user.id) {
-      await cmd.reply({ embeds: [errorEmbed("You can't warn yourself.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("You can't warn yourself."));
       return;
     }
 
     if (targetMember && !canModerate(member, targetMember)) {
-      await cmd.reply({ embeds: [errorEmbed("You can't warn someone with a higher role.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("You can't warn someone with a higher role."));
       return;
     }
 
-    // DM the user
     try {
       await target.send({
-        embeds: [errorEmbed(`You have been **warned** in **${cmd.guild?.name}**\n\n**Reason:** ${reason}`)],
+        components: [errorV2(`You have been **warned** in **${cmd.guild?.name}**\n\n**Reason:** ${reason}`)],
+        flags: MessageFlags.IsComponentsV2,
       });
     } catch {}
 
     await cmd.reply({
-      embeds: [successEmbed(`**${target.tag}** has been warned.\n**Reason:** ${reason}`)],
+      components: [successV2(`**${target.tag}** has been warned.\n**Reason:** ${reason}`)],
+      flags: MessageFlags.IsComponentsV2,
     });
 
-    await logToChannel(modLogEmbed({
+    await logContainerToChannel(modLogV2({
       action: "WARN",
       moderator: cmd.user,
       target,

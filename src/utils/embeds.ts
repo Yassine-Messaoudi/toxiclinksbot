@@ -1,5 +1,10 @@
-import { EmbedBuilder, User } from "discord.js";
+import {
+  EmbedBuilder, User,
+  ContainerBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder, MessageFlags,
+} from "discord.js";
 import { BOT_COLOR, ERROR_COLOR, WARN_COLOR, SUCCESS_COLOR, INFO_COLOR, BOT_FOOTER, APP_NAME, LOGO_URL, SKULL_GIF_URL, LINE_SHORT } from "../config";
+import { BANNER_GIF, LOGO } from "./branding";
 
 /** Branded embed with toxic green accent + logo + skull */
 export function toxicEmbed() {
@@ -128,6 +133,105 @@ function actionEmoji(action: string): string {
     UNBAN: "✅",
     PURGE: "🗑️",
     TIMEOUT: "⏰",
+    CLEAR: "🧹",
+    "CLEAR ALL": "🧹",
   };
   return map[action] || "📋";
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  Components V2 Container Helpers
+ * ═══════════════════════════════════════════════════════════ */
+
+/** V2 error container */
+export function errorV2(message: string): ContainerBuilder {
+  const c = new ContainerBuilder().setAccentColor(ERROR_COLOR);
+  c.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `### ✖ Error\n${message}\n-# ${LOGO} ${BOT_FOOTER}`
+    )
+  );
+  return c;
+}
+
+/** V2 success container */
+export function successV2(message: string): ContainerBuilder {
+  const c = new ContainerBuilder().setAccentColor(SUCCESS_COLOR);
+  c.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `### ✔ Success\n${message}\n-# ${LOGO} ${BOT_FOOTER}`
+    )
+  );
+  return c;
+}
+
+/** V2 moderation log container — posted to #bot-logs */
+export function modLogV2(opts: {
+  action: string;
+  moderator: User;
+  target: User;
+  reason?: string;
+  duration?: string;
+  extra?: string;
+}): ContainerBuilder {
+  const emoji = actionEmoji(opts.action);
+  const color =
+    (opts.action === "BAN" || opts.action === "KICK") ? ERROR_COLOR :
+    (opts.action === "MUTE" || opts.action === "WARN") ? WARN_COLOR :
+    (opts.action === "UNMUTE" || opts.action === "UNBAN") ? SUCCESS_COLOR :
+    BOT_COLOR;
+
+  const c = new ContainerBuilder().setAccentColor(color);
+
+  c.addMediaGalleryComponents(
+    new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+    )
+  );
+
+  const lines = [
+    `# ${emoji} ${opts.action}`,
+    `> **Target:** ${opts.target.tag} (<@${opts.target.id}>)`,
+    `> **Moderator:** ${opts.moderator.tag} (<@${opts.moderator.id}>)`,
+  ];
+  if (opts.reason) lines.push(`> **Reason:** ${opts.reason}`);
+  if (opts.duration) lines.push(`> **Duration:** ${opts.duration}`);
+  if (opts.extra) lines.push(`> **Details:** ${opts.extra}`);
+  lines.push(`\n-# ${LOGO} ${new Date().toLocaleString()} • ${BOT_FOOTER}`);
+
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join("\n")));
+
+  return c;
+}
+
+/** V2 info container with banner */
+export function infoV2(title: string, body: string): ContainerBuilder {
+  const c = new ContainerBuilder().setAccentColor(BOT_COLOR);
+
+  c.addMediaGalleryComponents(
+    new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+    )
+  );
+
+  c.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(`# ${LOGO} ${title}\n${body}`)
+  );
+
+  c.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+  c.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+  );
+
+  return c;
+}
+
+/** Shorthand: V2 reply options for ephemeral error */
+export function ephemeralErrorV2(message: string) {
+  return { components: [errorV2(message)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral };
+}
+
+/** Shorthand: V2 reply options for ephemeral success */
+export function ephemeralSuccessV2(message: string) {
+  return { components: [successV2(message)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral };
 }

@@ -1,4 +1,4 @@
-import { Client, TextChannel, EmbedBuilder } from "discord.js";
+import { Client, TextChannel, EmbedBuilder, ContainerBuilder, MessageFlags } from "discord.js";
 import { CHANNELS } from "../config";
 
 let logChannel: TextChannel | null = null;
@@ -13,13 +13,23 @@ export function initLogger(client: Client) {
   }
 }
 
-/** Send an embed to #bot-logs */
+/** Send an embed to #bot-logs (legacy) */
 export async function logToChannel(embed: EmbedBuilder) {
   if (!logChannel) return;
   try {
     await logChannel.send({ embeds: [embed] });
   } catch (err) {
     console.warn("[Bot] Failed to log to channel:", (err as Error).message);
+  }
+}
+
+/** Send a V2 container to #bot-logs */
+export async function logContainerToChannel(container: ContainerBuilder) {
+  if (!logChannel) return;
+  try {
+    await logChannel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+  } catch (err) {
+    console.warn("[Bot] Failed to log V2 to channel:", (err as Error).message);
   }
 }
 

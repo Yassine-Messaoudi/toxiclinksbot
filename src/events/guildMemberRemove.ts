@@ -1,5 +1,10 @@
-import { GuildMember, PartialGuildMember, Client, EmbedBuilder, TextChannel } from "discord.js";
-import { CHANNELS, BOT_FOOTER, GOODBYE_COLOR, LOGO_URL, SKULL_GIF_URL, LINE_SHORT, APP_NAME } from "../config";
+import {
+  GuildMember, PartialGuildMember, Client, TextChannel, MessageFlags,
+  ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder, ThumbnailBuilder,
+} from "discord.js";
+import { CHANNELS, BOT_FOOTER, GOODBYE_COLOR, APP_NAME } from "../config";
+import { BANNER_GIF, LOGO } from "../utils/branding";
 import { logText } from "../utils/logger";
 
 export async function handleGuildMemberRemove(
@@ -15,34 +20,49 @@ export async function handleGuildMemberRemove(
   const remaining = member.guild.memberCount;
   const joinedAt = (member as GuildMember).joinedTimestamp;
   const stayDays = joinedAt ? Math.floor((Date.now() - joinedAt) / 86400000) : null;
+  const avatarUrl = member.user?.displayAvatarURL({ size: 512 }) || BANNER_GIF;
+  const displayName = member.user?.displayName || "Unknown";
+  const tag = member.user?.tag || "Unknown";
 
-  const embed = new EmbedBuilder()
-    .setColor(GOODBYE_COLOR)
-    .setAuthor({
-      name: `${APP_NAME} — Goodbye`,
-      iconURL: LOGO_URL,
-    })
-    .setTitle(`${member.user?.displayName || "Unknown"} left ☠️`)
-    .setDescription([
-      `> **${member.user?.tag || "Unknown"}** has left the server.`,
-      "",
-      `\`\`\`ansi`,
-      `\u001b[0;31m╔════════════════════════════╗`,
-      `\u001b[0;31m║  \u001b[1;31m💀 Member Lost\u001b[0;31m`,
-      stayDays !== null ? `\u001b[0;31m║  \u001b[0;37mStayed for: ${stayDays} days` : null,
-      `\u001b[0;31m║  \u001b[0;37mRemaining: ${remaining.toLocaleString()}`,
-      `\u001b[0;31m╚════════════════════════════╝`,
-      `\`\`\``,
-      "",
-      `*${LINE_SHORT}*`,
-    ].filter(Boolean).join("\n"))
-    .setThumbnail(member.user?.displayAvatarURL({ size: 256 }) || SKULL_GIF_URL)
-    .setFooter({ text: `${remaining.toLocaleString()} members remaining • ${BOT_FOOTER}`, iconURL: LOGO_URL })
-    .setTimestamp();
+  const container = new ContainerBuilder().setAccentColor(GOODBYE_COLOR);
+
+  container.addMediaGalleryComponents(
+    new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+    )
+  );
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `# 💀 Goodbye, ${displayName}\n**${tag}** has left the server.`
+    )
+  );
+
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+  const statsLines = [
+    `-# � Members remaining: **${remaining.toLocaleString()}**`,
+  ];
+  if (stayDays !== null) statsLines.push(`-# ⏱️ Stayed for: **${stayDays}** days`);
+
+  const statsSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(statsLines.join("\n"))
+    )
+    .setThumbnailAccessory(
+      new ThumbnailBuilder().setURL(avatarUrl)
+    );
+  container.addSectionComponents(statsSection);
+
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(`-# ${LOGO} ${APP_NAME} • ${BOT_FOOTER}`)
+  );
 
   try {
-    await channel.send({ embeds: [embed] });
+    await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
   } catch {}
 
-  await logText(`� **${member.user?.tag || "Unknown"}** left the server (${remaining} members)`);
+  await logText(`💀 **${tag}** left the server (${remaining} members)`);
 }

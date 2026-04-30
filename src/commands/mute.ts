@@ -1,7 +1,7 @@
-import { ChatInputCommandInteraction, GuildMember, Interaction } from "discord.js";
+import { ChatInputCommandInteraction, GuildMember, Interaction, MessageFlags } from "discord.js";
 import { isMod, canModerate } from "../utils/permissions";
-import { errorEmbed, successEmbed, modLogEmbed } from "../utils/embeds";
-import { logToChannel } from "../utils/logger";
+import { ephemeralErrorV2, successV2, modLogV2, errorV2 } from "../utils/embeds";
+import { logContainerToChannel } from "../utils/logger";
 
 const DURATIONS: Record<string, number> = {
   "5m": 5 * 60_000,
@@ -23,7 +23,7 @@ export const muteCommand = {
     const member = cmd.member as GuildMember;
 
     if (!isMod(member)) {
-      await cmd.reply({ embeds: [errorEmbed("You need moderator permissions.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("You need moderator permissions."));
       return;
     }
 
@@ -33,39 +33,41 @@ export const muteCommand = {
     const targetMember = cmd.guild?.members.cache.get(target.id);
 
     if (!targetMember) {
-      await cmd.reply({ embeds: [errorEmbed("User not found in this server.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("User not found in this server."));
       return;
     }
 
     if (!canModerate(member, targetMember)) {
-      await cmd.reply({ embeds: [errorEmbed("You can't mute someone with a higher role.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("You can't mute someone with a higher role."));
       return;
     }
 
     const ms = DURATIONS[durationStr];
     if (!ms) {
-      await cmd.reply({ embeds: [errorEmbed("Invalid duration.")], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2("Invalid duration."));
       return;
     }
 
     try {
       await targetMember.timeout(ms, `${cmd.user.tag}: ${reason}`);
     } catch (err) {
-      await cmd.reply({ embeds: [errorEmbed(`Failed to mute: ${(err as Error).message}`)], ephemeral: true });
+      await cmd.reply(ephemeralErrorV2(`Failed to mute: ${(err as Error).message}`));
       return;
     }
 
     try {
       await target.send({
-        embeds: [errorEmbed(`You have been **muted** in **${cmd.guild?.name}** for **${durationStr}**\n\n**Reason:** ${reason}`)],
+        components: [errorV2(`You have been **muted** in **${cmd.guild?.name}** for **${durationStr}**\n\n**Reason:** ${reason}`)],
+        flags: MessageFlags.IsComponentsV2,
       });
     } catch {}
 
     await cmd.reply({
-      embeds: [successEmbed(`**${target.tag}** has been muted for **${durationStr}**.\n**Reason:** ${reason}`)],
+      components: [successV2(`**${target.tag}** has been muted for **${durationStr}**.\n**Reason:** ${reason}`)],
+      flags: MessageFlags.IsComponentsV2,
     });
 
-    await logToChannel(modLogEmbed({
+    await logContainerToChannel(modLogV2({
       action: "MUTE",
       moderator: cmd.user,
       target,

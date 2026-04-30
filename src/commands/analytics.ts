@@ -1,6 +1,12 @@
-import { ChatInputCommandInteraction, EmbedBuilder, Interaction } from "discord.js";
+import {
+  ChatInputCommandInteraction, Interaction, MessageFlags,
+  ContainerBuilder, TextDisplayBuilder, SeparatorBuilder,
+  MediaGalleryBuilder, MediaGalleryItemBuilder,
+} from "discord.js";
 import { prisma } from "../index";
-import { BOT_COLOR, BOT_FOOTER, LOGO_URL } from "../config";
+import { BOT_COLOR, BOT_FOOTER } from "../config";
+import { ephemeralErrorV2 } from "../utils/embeds";
+import { BANNER_GIF, LOGO } from "../utils/branding";
 
 export const analyticsCommand = {
   name: "analytics",
@@ -24,35 +30,41 @@ export const analyticsCommand = {
     });
 
     if (!dbUser || !dbUser.username) {
-      await cmd.reply({
-        content: "You don't have a ToxicLinks account yet.",
-        ephemeral: true,
-      });
+      await cmd.reply(ephemeralErrorV2("You don't have a ToxicLinks account yet."));
       return;
     }
 
     const totalViews = dbUser.profile?.totalViews || 0;
     const totalClicks = dbUser.links.reduce((sum, l) => sum + l.clicks, 0);
 
-    const embed = new EmbedBuilder()
-      .setColor(BOT_COLOR)
-      .setTitle(`📊 Analytics for @${dbUser.username}`)
-      .addFields(
-        { name: "Total Views", value: totalViews.toLocaleString(), inline: true },
-        { name: "Total Link Clicks", value: totalClicks.toLocaleString(), inline: true },
-        { name: "Links", value: `${dbUser.links.length}`, inline: true },
-      );
+    const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
+
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(BANNER_GIF)
+      )
+    );
+
+    let body =
+      `# ${LOGO} Analytics — @${dbUser.username}\n\n` +
+      `> 👁️ **Total Views:** ${totalViews.toLocaleString()}\n` +
+      `> 🖱️ **Total Clicks:** ${totalClicks.toLocaleString()}\n` +
+      `> 🔗 **Links:** ${dbUser.links.length}`;
 
     if (dbUser.links.length > 0) {
       const topLinks = dbUser.links
-        .map((l, i) => `**${i + 1}.** ${l.title} — ${l.clicks} clicks`)
+        .map((l, i) => `> **${i + 1}.** ${l.title} — ${l.clicks} clicks`)
         .join("\n");
-      embed.addFields({ name: "Top Links", value: topLinks });
+      body += `\n\n### 📎 Top Links\n${topLinks}`;
     }
 
-    embed.setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL });
-    embed.setTimestamp();
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(body));
 
-    await cmd.reply({ embeds: [embed], ephemeral: true });
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+    );
+
+    await cmd.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
   },
 };
