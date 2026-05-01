@@ -243,6 +243,31 @@ const commands = [
         .addIntegerOption((opt) => opt.setName("limit").setDescription("Max messages to scan (default 100)").setRequired(false).setMinValue(1).setMaxValue(5000))
     ),
 
+  // ── Admin ──
+  new SlashCommandBuilder()
+    .setName("setrole")
+    .setDescription("Change a user's website role (Admin only)")
+    .addUserOption((opt) => opt.setName("user").setDescription("The user to change").setRequired(true))
+    .addStringOption((opt) =>
+      opt.setName("role").setDescription("New role").setRequired(true)
+        .addChoices(
+          { name: "User", value: "USER" },
+          { name: "Moderator", value: "MOD" },
+          { name: "Admin", value: "ADMIN" },
+        )
+    ),
+
+  new SlashCommandBuilder()
+    .setName("resetacc")
+    .setDescription("Reset a user's profile to defaults (Admin only)")
+    .addUserOption((opt) => opt.setName("user").setDescription("The user to reset").setRequired(true))
+    .addStringOption((opt) => opt.setName("reason").setDescription("Reason for reset").setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName("invites")
+    .setDescription("Check invite stats for a user")
+    .addUserOption((opt) => opt.setName("user").setDescription("The user to check (default: yourself)").setRequired(false)),
+
   // ── Website Panel ──
   new SlashCommandBuilder()
     .setName("website")

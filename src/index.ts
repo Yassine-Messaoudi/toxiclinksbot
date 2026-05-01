@@ -38,6 +38,9 @@ import { scrapeCommand } from "./commands/scrape";
 import { postAssetCommand } from "./commands/post-asset";
 import { panelsCommand } from "./commands/panels";
 import { websiteCommand } from "./commands/website";
+import { setroleCommand } from "./commands/setrole";
+import { resetaccCommand } from "./commands/resetacc";
+import { invitesCommand } from "./commands/invites";
 
 // ── Events ──
 import { handlePresenceUpdate } from "./events/presenceUpdate";
@@ -87,6 +90,7 @@ const commandList: Command[] = [
   helpCommand, userinfoCommand, serverinfoCommand,
   announceCommand, giveawayCommand, pollCommand, suggestCommand, ticketCommand,
   warnCommand, muteCommand, banCommand, kickCommand, purgeCommand, clearCommand, embedCommand, scrapeCommand, postAssetCommand, panelsCommand, websiteCommand,
+  setroleCommand, resetaccCommand, invitesCommand,
 ];
 
 for (const cmd of commandList) commands.set(cmd.name, cmd);
