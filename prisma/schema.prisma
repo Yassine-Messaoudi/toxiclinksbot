@@ -57,6 +57,7 @@ enum UserRole {
   USER
   MOD
   ADMIN
+  OWNER
 }
 
 enum ProfileLayout {
@@ -126,6 +127,7 @@ enum BadgeType {
   CUSTOM
   STAFF
   ADMIN
+  OWNER
   EARLY_SUPPORTER
   DISCORD_ROLE
   DISCORD_MEMBER
@@ -174,6 +176,8 @@ model User {
   guestbookEntries  GuestbookEntry[]   @relation("GuestbookAuthor")
   guestbookReceived GuestbookEntry[]   @relation("GuestbookOwner")
   profileViews      ProfileView[]
+  linkClicks        LinkClick[]
+  socialClicks      SocialClick[]
   pageAliases       PageAlias[]
   payments          Payment[]
   templates         Template[]
@@ -327,6 +331,35 @@ model ProfileView {
   @@index([profileUserId, createdAt])
 }
 
+model LinkClick {
+  id            String   @id @default(cuid())
+  profileUserId String
+  linkId        String?
+  linkTitle     String?
+  linkUrl       String?
+  visitorIpHash String?
+  country       String?
+  device        String?
+  createdAt     DateTime @default(now())
+
+  profileUser User @relation(fields: [profileUserId], references: [id], onDelete: Cascade)
+
+  @@index([profileUserId, createdAt])
+}
+
+model SocialClick {
+  id            String   @id @default(cuid())
+  profileUserId String
+  platform      String
+  url           String?
+  visitorIpHash String?
+  createdAt     DateTime @default(now())
+
+  profileUser User @relation(fields: [profileUserId], references: [id], onDelete: Cascade)
+
+  @@index([profileUserId, createdAt])
+}
+
 model PageAlias {
   id        String   @id @default(cuid())
   userId    String
@@ -385,4 +418,10 @@ model TemplateFavorite {
   template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@unique([userId, templateId])
+}
+
+model SiteConfig {
+  id        String   @id @default("singleton")
+  data      Json     @default("{}")
+  updatedAt DateTime @updatedAt
 }
