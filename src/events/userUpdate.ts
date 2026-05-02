@@ -41,9 +41,8 @@ export async function handleUserUpdate(
     const newDisplayName = newUser.globalName || newUser.displayName || newUser.username;
     connectionUpdate.discordDisplayName = newDisplayName;
     connectionUpdate.discordUsername = newUser.username;
-    // Also sync the display name on the User model
-    userUpdate.displayName = newDisplayName;
-    console.log(`[Bot] Syncing display name for user ${connection.userId}: "${newDisplayName}"`);
+    // Only update DiscordConnection — never overwrite the user's custom profile displayName
+    console.log(`[Bot] Syncing Discord display name for user ${connection.userId}: "${newDisplayName}"`);
   }
 
   if (avatarChanged) {
