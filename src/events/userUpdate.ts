@@ -6,11 +6,15 @@ export async function handleUserUpdate(
   newUser: User,
   prisma: PrismaClient
 ) {
-  // Check if avatar, banner, or decoration changed
+  // Check if avatar, banner, or display name changed
   const avatarChanged = oldUser.avatar !== newUser.avatar;
   const bannerChanged = oldUser.banner !== newUser.banner;
+  const nameChanged =
+    oldUser.displayName !== newUser.displayName ||
+    oldUser.username !== newUser.username ||
+    oldUser.globalName !== newUser.globalName;
 
-  if (!avatarChanged && !bannerChanged) return;
+  if (!avatarChanged && !bannerChanged && !nameChanged) return;
 
   // Find the user's ToxicLinks connection
   let connection;
@@ -32,6 +36,15 @@ export async function handleUserUpdate(
 
   const userUpdate: Record<string, string> = {};
   const connectionUpdate: Record<string, string> = {};
+
+  if (nameChanged) {
+    const newDisplayName = newUser.globalName || newUser.displayName || newUser.username;
+    connectionUpdate.discordDisplayName = newDisplayName;
+    connectionUpdate.discordUsername = newUser.username;
+    // Also sync the display name on the User model
+    userUpdate.displayName = newDisplayName;
+    console.log(`[Bot] Syncing display name for user ${connection.userId}: "${newDisplayName}"`);
+  }
 
   if (avatarChanged) {
     // Use GIF format for animated avatars, PNG for static
