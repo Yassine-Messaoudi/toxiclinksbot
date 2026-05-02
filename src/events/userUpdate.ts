@@ -34,6 +34,8 @@ export async function handleUserUpdate(
 
   if (!connection) return;
 
+  console.log(`[Bot] UserUpdate for ${newUser.id}: autoSyncAvatar=${connection.autoSyncAvatar}, autoSyncBanner=${connection.autoSyncBanner}, avatarChanged=${avatarChanged}, bannerChanged=${bannerChanged}, nameChanged=${nameChanged}`);
+
   const userUpdate: Record<string, string> = {};
   const connectionUpdate: Record<string, string> = {};
 
@@ -62,6 +64,8 @@ export async function handleUserUpdate(
       userUpdate.avatarUrl = newAvatarUrl;
       userUpdate.image = newAvatarUrl;
       console.log(`[Bot] Auto-syncing avatar for user ${connection.userId} (animated: ${isAnimated})`);
+    } else {
+      console.log(`[Bot] SKIPPING avatar sync for user ${connection.userId} — autoSyncAvatar is OFF`);
     }
   }
 
@@ -81,6 +85,8 @@ export async function handleUserUpdate(
       if (connection.autoSyncBanner) {
         userUpdate.bannerUrl = newBannerUrl;
         console.log(`[Bot] Auto-syncing banner for user ${connection.userId} (animated: ${isAnimated})`);
+      } else {
+        console.log(`[Bot] SKIPPING banner sync for user ${connection.userId} — autoSyncBanner is OFF`);
       }
     }
   }
