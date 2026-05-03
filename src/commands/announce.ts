@@ -6,7 +6,7 @@ import {
 import { isStaff } from "../utils/permissions";
 import { errorEmbed, successEmbed } from "../utils/embeds";
 import { BOT_COLOR, CHANNELS, BOT_FOOTER, APP_NAME } from "../config";
-import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 export const announceCommand = {
   name: "announce",
@@ -48,7 +48,7 @@ export const announceCommand = {
     // Title + body
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `# ${LOGO} ${title}\n${message}`
+        `# ${logoEmoji(cmd.guild)} ${title}\n${message}`
       )
     );
 

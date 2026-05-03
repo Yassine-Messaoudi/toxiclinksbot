@@ -4,7 +4,7 @@ import {
   MediaGalleryBuilder, MediaGalleryItemBuilder, ThumbnailBuilder,
 } from "discord.js";
 import { BOT_COLOR, BOT_FOOTER } from "../config";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 export const serverinfoCommand = {
   name: "serverinfo",
@@ -25,6 +25,11 @@ export const serverinfoCommand = {
     const voiceChannels = channels.filter(c => c.isVoiceBased()).size;
     const roles = guild.roles.cache.size - 1;
 
+    const logo = logoEmoji(guild);
+    const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
+    const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
+    const eLeaderboard = guildEmoji(guild, EMOJI_NAMES.leaderboard);
+
     const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
     container.addMediaGalleryComponents(
@@ -37,13 +42,13 @@ export const serverinfoCommand = {
     if (iconUrl) {
       const headerSection = new SectionBuilder()
         .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(`# ${LOGO} ${guild.name}`)
+          new TextDisplayBuilder().setContent(`# ${logo} ${guild.name}`)
         )
         .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl));
       container.addSectionComponents(headerSection);
     } else {
       container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`# ${LOGO} ${guild.name}`)
+        new TextDisplayBuilder().setContent(`# ${logo} ${guild.name}`)
       );
     }
 
@@ -51,12 +56,12 @@ export const serverinfoCommand = {
 
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `> 👥 **Members:** **${guild.memberCount.toLocaleString()}** total — ${humans.toLocaleString()} humans • ${bots} bots • ${online.toLocaleString()} online\n` +
-        `> 💬 **Channels:** ${textChannels} text • ${voiceChannels} voice — ${channels.size} total\n` +
-        `> 🎭 **Roles:** ${roles}\n` +
-        `> 🚀 **Boosts:** **${boosts}** (Level ${guild.premiumTier})\n` +
-        `> 👑 **Owner:** <@${guild.ownerId}>\n` +
-        `> 📅 **Created:** <t:${Math.floor(guild.createdTimestamp / 1000)}:R>`
+        `> ${eWebsite} **Members:** **${guild.memberCount.toLocaleString()}** total — ${humans.toLocaleString()} humans • ${bots} bots • ${online.toLocaleString()} online\n` +
+        `> ${eLogoNoBg} **Channels:** ${textChannels} text • ${voiceChannels} voice — ${channels.size} total\n` +
+        `> ${eLeaderboard} **Roles:** ${roles}\n` +
+        `> ${eLogoNoBg} **Boosts:** **${boosts}** (Level ${guild.premiumTier})\n` +
+        `> ${eWebsite} **Owner:** <@${guild.ownerId}>\n` +
+        `> ${eWebsite} **Created:** <t:${Math.floor(guild.createdTimestamp / 1000)}:R>`
       )
     );
 
@@ -70,7 +75,7 @@ export const serverinfoCommand = {
 
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${LOGO} ID: ${guild.id} • ${BOT_FOOTER}`)
+      new TextDisplayBuilder().setContent(`-# ${logo} ID: ${guild.id} • ${BOT_FOOTER}`)
     );
 
     await cmd.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });

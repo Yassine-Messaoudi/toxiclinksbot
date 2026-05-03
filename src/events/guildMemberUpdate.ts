@@ -5,7 +5,7 @@ import {
 } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 import { CHANNELS, PREMIUM_COLOR, BOT_FOOTER, APP_NAME } from "../config";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 import { logText } from "../utils/logger";
 
 export async function handleGuildMemberUpdate(
@@ -47,9 +47,12 @@ async function handleNewBoost(member: GuildMember, client: Client) {
   );
 
   // Header
+  const logo = logoEmoji(member.guild);
+  const eLogoNoBg = guildEmoji(member.guild, EMOJI_NAMES.logoNoBg);
+
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `# ${LOGO} Server Boosted!\n**${member.user.displayName}** just boosted **${APP_NAME}**! 💎`
+      `# ${logo} Server Boosted!\n**${member.user.displayName}** just boosted **${APP_NAME}**!`
     )
   );
 
@@ -59,7 +62,7 @@ async function handleNewBoost(member: GuildMember, client: Client) {
   const statsSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `### 💎 Boost Info\n` +
+        `### ${eLogoNoBg} Boost Info\n` +
         `-# Total Boosts: **${boostCount}**\n` +
         `-# Server Level: **${member.guild.premiumTier}**\n` +
         `-# Boosted by: **${member.user.displayName}**`
@@ -75,7 +78,7 @@ async function handleNewBoost(member: GuildMember, client: Client) {
   // Thank you
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `> 💜 Thank you for supporting the community!\n> Your boost helps keep ${APP_NAME} running.\n\n-# ${LOGO} ${BOT_FOOTER}`
+      `> ${eLogoNoBg} Thank you for supporting the community!\n> Your boost helps keep ${APP_NAME} running.\n\n-# ${logo} ${BOT_FOOTER}`
     )
   );
 

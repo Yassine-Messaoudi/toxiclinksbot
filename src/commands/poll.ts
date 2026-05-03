@@ -5,7 +5,7 @@ import {
   MediaGalleryBuilder, MediaGalleryItemBuilder,
 } from "discord.js";
 import { BOT_COLOR, BOT_FOOTER } from "../config";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, logoEmoji } from "../utils/branding";
 
 /** In-memory poll store */
 export const activePolls = new Map<string, {
@@ -43,7 +43,7 @@ export const pollCommand = {
 
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `# ${LOGO} ${question}\n\n${optionLines}\n\n-# Poll by **${cmd.user.displayName}** • \`0 total votes\``
+        `# ${logoEmoji(cmd.guild)} ${question}\n\n${optionLines}\n\n-# Poll by **${cmd.user.displayName}** • \`0 total votes\``
       )
     );
 
@@ -64,7 +64,7 @@ export const pollCommand = {
 
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+      new TextDisplayBuilder().setContent(`-# ${logoEmoji(cmd.guild)} ${BOT_FOOTER}`)
     );
 
     const msg = await cmd.reply({

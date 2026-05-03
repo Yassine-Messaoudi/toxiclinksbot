@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { BOT_COLOR, APP_URL, APP_NAME, BOT_FOOTER } from "../config";
 import { ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
-import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji, guildEmojiObj } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, guildEmojiObj, logoEmoji } from "../utils/branding";
 
 export const websiteCommand = {
   name: "website",
@@ -43,7 +43,7 @@ export const websiteCommand = {
     // Header
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `# ${LOGO} ${APP_NAME}\n` +
+        `# ${logoEmoji(guild)} ${APP_NAME}\n` +
         `The **ultimate bio link platform** for gamers, creators, and communities.\n` +
         `Build your toxic profile, share your links, and stand out.`
       )
@@ -98,7 +98,7 @@ export const websiteCommand = {
     const profileSection = new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `### ${LOGO} Create Profile\n-# Sign up and build your toxic bio link page.`
+          `### ${logoEmoji(guild)} Create Profile\n-# Sign up and build your toxic bio link page.`
         )
       )
       .setButtonAccessory(
@@ -113,7 +113,7 @@ export const websiteCommand = {
 
     // Footer
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+      new TextDisplayBuilder().setContent(`-# ${logoEmoji(guild)} ${BOT_FOOTER}`)
     );
 
     await ch.send({

@@ -9,6 +9,7 @@ import path from "path";
 import { BOT_COLOR, APP_NAME, BOT_FOOTER } from "../config";
 import { ephemeralErrorV2 } from "../utils/embeds";
 import { BANNER_GIF, LOGO } from "../utils/branding";
+// Note: LOGO is static fallback ("☠️") — scrape helpers don't have guild context
 import { client } from "../index";
 
 /** Default asset channel names to create */

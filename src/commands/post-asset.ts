@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { BOT_COLOR, APP_NAME, BOT_FOOTER } from "../config";
 import { errorEmbed, successEmbed } from "../utils/embeds";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, logoEmoji } from "../utils/branding";
 
 /** Asset types that map to channel names */
 const ASSET_TYPES = [
@@ -136,7 +136,7 @@ export const postAssetCommand = {
       const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# ${LOGO} Bulk Post Complete\n` +
+          `# ${logoEmoji(cmd.guild)} Bulk Post Complete\n` +
           `**Channel:** <#${targetCh.id}>\n` +
           `**Type:** ${assetInfo.emoji} ${assetInfo.name}\n` +
           `**Posted:** ${posted}/${urls.length} assets`
@@ -144,7 +144,7 @@ export const postAssetCommand = {
       );
       container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
       container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+        new TextDisplayBuilder().setContent(`-# ${logoEmoji(cmd.guild)} ${BOT_FOOTER}`)
       );
 
       await cmd.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });

@@ -10,7 +10,7 @@ import path from "path";
 import { BOT_COLOR, CHANNELS, ROLES, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE, APP_NAME } from "../config";
 import { errorEmbed, successEmbed, toxicEmbed } from "../utils/embeds";
 import { logToChannel } from "../utils/logger";
-import { BANNER_GIF, LOGO, EMOJI as BRAND_EMOJI, EMOJI_NAMES, guildEmoji, guildEmojiObj } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, guildEmojiObj, logoEmoji } from "../utils/branding";
 
 /** Path to img folder */
 export const IMG_DIR = path.join(__dirname, "..", "..", "img");
@@ -24,42 +24,36 @@ export const CATEGORY_IMAGES: Record<string, string> = {
   billing:  "purshacebilling.png",
 };
 
-/** Local emoji aliases (ticket-specific categories use brand + local as fallback) */
-const EMOJI = {
-  ...BRAND_EMOJI,
-  support:  BRAND_EMOJI.support,
-  report:   BRAND_EMOJI.support,
-  account:  BRAND_EMOJI.store,
-  verified: BRAND_EMOJI.verified,
-  billing:  BRAND_EMOJI.billing,
-  store:    BRAND_EMOJI.store,
+/** Map ticket category → emoji name in guild cache */
+const TICKET_EMOJI_MAP: Record<string, string> = {
+  support: EMOJI_NAMES.support,
+  report: EMOJI_NAMES.needhelp,
+  account: EMOJI_NAMES.accountRecovery,
+  verified: EMOJI_NAMES.verified,
+  billing: EMOJI_NAMES.billing,
 };
 
-/** Resolve ticket category emoji from guild cache, with hardcoded fallback */
-function resolveTicketEmoji(guild: any, key: string): { id: string; name: string } {
-  const nameMap: Record<string, string> = {
-    support: EMOJI_NAMES.support,
-    report: EMOJI_NAMES.needhelp,
-    account: EMOJI_NAMES.accountRecovery,
-    verified: EMOJI_NAMES.verified,
-    billing: EMOJI_NAMES.billing,
-  };
-  const emojiName = nameMap[key];
-  if (emojiName && guild) {
-    const resolved = guildEmojiObj(guild, emojiName);
-    if (resolved) return resolved;
-  }
-  const fallback = (EMOJI as any)[key];
-  return fallback || BRAND_EMOJI.support;
+/** Resolve ticket category emoji from guild cache → object for buttons or Unicode string */
+function resolveTicketEmoji(guild: any, key: string): { id: string; name: string } | string {
+  const emojiName = TICKET_EMOJI_MAP[key];
+  if (emojiName && guild) return guildEmojiObj(guild, emojiName);
+  return "🎫";
+}
+
+/** Resolve ticket emoji as text string for embed content */
+function resolveTicketEmojiStr(guild: any, key: string): string {
+  const emojiName = TICKET_EMOJI_MAP[key];
+  if (emojiName && guild) return guildEmoji(guild, emojiName);
+  return "🎫";
 }
 
 /** Ticket categories */
 export const TICKET_CATEGORIES = [
-  { value: "support",  label: "Support",                    emoji: EMOJI.support,  question: "Have a general question or need help?" },
-  { value: "report",   label: "Report Profile",             emoji: EMOJI.report,   question: "Need to report a user profile?" },
-  { value: "account",  label: "Account Recovery",           emoji: EMOJI.account,  question: "Lost access to your account?" },
-  { value: "verified", label: "Verified Badge Application", emoji: EMOJI.verified, question: "Want to apply for a verified badge?" },
-  { value: "billing",  label: "Purchase / Billing",         emoji: EMOJI.billing,  question: "Have a question about purchases or billing?" },
+  { value: "support",  label: "Support",                    question: "Have a general question or need help?" },
+  { value: "report",   label: "Report Profile",             question: "Need to report a user profile?" },
+  { value: "account",  label: "Account Recovery",           question: "Lost access to your account?" },
+  { value: "verified", label: "Verified Badge Application", question: "Want to apply for a verified badge?" },
+  { value: "billing",  label: "Purchase / Billing",         question: "Have a question about purchases or billing?" },
 ];
 
 export const ticketCommand = {
@@ -80,6 +74,9 @@ export const ticketCommand = {
       const ch = cmd.channel as TextChannel;
 
       // ── Components V2: Container with Sections ──
+      const guild = cmd.guild;
+      const logo = logoEmoji(guild);
+
       const container = new ContainerBuilder()
         .setAccentColor(BOT_COLOR);
 
@@ -93,7 +90,7 @@ export const ticketCommand = {
       // Header text with logo emoji
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# ${LOGO} Support Center\nWelcome to **${APP_NAME}**\n-# Select the option that best matches your needs.`
+          `# ${logo} Support Center\nWelcome to **${APP_NAME}**\n-# Select the option that best matches your needs.`
         )
       );
 
@@ -102,26 +99,23 @@ export const ticketCommand = {
         new SeparatorBuilder().setDivider(true)
       );
 
-      const guild = cmd.guild;
-
       // Section per category: text on the left, button on the right
       for (let i = 0; i < TICKET_CATEGORIES.length; i++) {
         const cat = TICKET_CATEGORIES[i];
-        const resolvedEmoji = resolveTicketEmoji(guild, cat.value);
-        const emojiStr = `<:${resolvedEmoji.name}:${resolvedEmoji.id}>`;
+        const emojiStr = resolveTicketEmojiStr(guild, cat.value);
+        const emojiObj = resolveTicketEmoji(guild, cat.value);
+        const btn = new ButtonBuilder()
+          .setCustomId(`ticket_cat_${cat.value}`)
+          .setLabel(cat.label)
+          .setEmoji(emojiObj)
+          .setStyle(ButtonStyle.Success);
         const section = new SectionBuilder()
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
               `### ${emojiStr} ${cat.question}\n-# Press **${cat.label}** to open the matching ticket flow.`
             )
           )
-          .setButtonAccessory(
-            new ButtonBuilder()
-              .setCustomId(`ticket_cat_${cat.value}`)
-              .setLabel(cat.label)
-              .setEmoji(resolvedEmoji)
-              .setStyle(ButtonStyle.Success)
-          );
+          .setButtonAccessory(btn);
 
         container.addSectionComponents(section);
 
@@ -141,7 +135,7 @@ export const ticketCommand = {
       // Footer text
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `-# 📬 Our support team usually responds within **5–30 minutes**. • ${LOGO} ${APP_NAME}`
+          `-# ${guildEmoji(guild, EMOJI_NAMES.needhelp)} Our support team usually responds within **5–30 minutes**. • ${logo} ${APP_NAME}`
         )
       );
 
@@ -185,8 +179,7 @@ export async function createTicket(guild: any, userId: string, username: string,
 
   const catInfo = TICKET_CATEGORIES.find(c => c.value === category);
   const catLabel = catInfo?.label || "Support";
-  const catEmojiObj = resolveTicketEmoji(guild, category || "support");
-  const catEmojiStr = `<:${catEmojiObj.name}:${catEmojiObj.id}>`;
+  const catEmojiStr = resolveTicketEmojiStr(guild, category || "support");
   const catImageFile = CATEGORY_IMAGES[category || "support"] || "Support.png";
 
   const bannerAttachment = new AttachmentBuilder(path.join(IMG_DIR, catImageFile), { name: "ticket_banner.png" });
@@ -212,10 +205,12 @@ export async function createTicket(guild: any, userId: string, username: string,
     )
   );
 
+  const logo = logoEmoji(guild);
+
   // Header
   ticketContainer.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `# ${LOGO} Ticket Opened\n**Category:** ${catEmojiStr} ${catLabel}`
+      `# ${logo} Ticket Opened\n**Category:** ${catEmojiStr} ${catLabel}`
     )
   );
 
@@ -234,18 +229,20 @@ export async function createTicket(guild: any, userId: string, username: string,
     new SeparatorBuilder().setDivider(true)
   );
 
+  const eSupport = guildEmojiObj(guild, EMOJI_NAMES.support);
+
   // Close / Claim buttons in a section
   const closeSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# 🔒 Click **Close Ticket** when your issue is resolved.`
+        `-# ${guildEmoji(guild, EMOJI_NAMES.needhelp)} Click **Close Ticket** when your issue is resolved.`
       )
     )
     .setButtonAccessory(
       new ButtonBuilder()
         .setCustomId("ticket_close")
         .setLabel("Close Ticket")
-        .setEmoji("🔒")
+        .setEmoji(eSupport)
         .setStyle(ButtonStyle.Danger)
     );
 
@@ -254,14 +251,14 @@ export async function createTicket(guild: any, userId: string, username: string,
   const claimSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# ✋ Staff can **Claim** this ticket.`
+        `-# ${guildEmoji(guild, EMOJI_NAMES.verified)} Staff can **Claim** this ticket.`
       )
     )
     .setButtonAccessory(
       new ButtonBuilder()
         .setCustomId("ticket_claim")
         .setLabel("Claim Ticket")
-        .setEmoji("✋")
+        .setEmoji(guildEmojiObj(guild, EMOJI_NAMES.verified))
         .setStyle(ButtonStyle.Primary)
     );
 
@@ -270,7 +267,7 @@ export async function createTicket(guild: any, userId: string, username: string,
   // Footer
   ticketContainer.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# ${LOGO} ${APP_NAME} • ${BOT_FOOTER}`
+      `-# ${logo} ${APP_NAME} • ${BOT_FOOTER}`
     )
   );
 
@@ -284,7 +281,7 @@ export async function createTicket(guild: any, userId: string, username: string,
 
   await logToChannel(
     toxicEmbed()
-      .setTitle("🎫 Ticket Opened")
+      .setTitle(`${catEmojiStr} Ticket Opened`)
       .setDescription(`**User:** <@${userId}>\n**Category:** ${catEmojiStr} ${catLabel}\n**Channel:** <#${channel.id}>`)
   );
 
@@ -300,9 +297,10 @@ async function closeTicket(cmd: ChatInputCommandInteraction) {
 
   await cmd.reply({ embeds: [successEmbed("Ticket will be closed in 5 seconds...")] });
 
+  const closeLogo = logoEmoji(cmd.guild);
   await logToChannel(
     toxicEmbed()
-      .setTitle("🎫 Ticket Closed")
+      .setTitle(`${closeLogo} Ticket Closed`)
       .setDescription(`**Closed by:** ${cmd.user.tag}\n**Channel:** #${channel.name}`)
   );
 

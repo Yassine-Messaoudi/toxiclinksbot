@@ -7,7 +7,7 @@ import {
 import { isStaff } from "../utils/permissions";
 import { ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
 import { BOT_FOOTER } from "../config";
-import { LOGO } from "../utils/branding";
+import { EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 export const embedCommand = {
   name: "embed",
@@ -30,6 +30,9 @@ export const embedCommand = {
     const targetChannel = cmd.options.getChannel("channel") as TextChannel | null;
 
     const color = parseInt(colorHex.replace("#", ""), 16) || 0x39ff14;
+
+    const guild = cmd.guild;
+    const logo = logoEmoji(guild);
 
     const container = new ContainerBuilder().setAccentColor(color);
 
@@ -55,7 +58,7 @@ export const embedCommand = {
 
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${LOGO} ${footerText}`)
+      new TextDisplayBuilder().setContent(`-# ${logo} ${footerText}`)
     );
 
     const channel = targetChannel || (cmd.channel as TextChannel);

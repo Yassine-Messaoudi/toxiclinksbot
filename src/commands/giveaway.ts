@@ -7,7 +7,7 @@ import {
 import { isStaff } from "../utils/permissions";
 import { ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
 import { BOT_COLOR, CHANNELS, BOT_FOOTER, WARN_COLOR } from "../config";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 /** In-memory giveaway store (production would use DB/Redis) */
 export const activeGiveaways = new Map<string, {
@@ -60,6 +60,12 @@ export const giveawayCommand = {
       return;
     }
 
+    const guild = cmd.guild;
+    const logo = logoEmoji(guild);
+    const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
+    const eShop = guildEmoji(guild, EMOJI_NAMES.shop);
+    const eLeaderboard = guildEmoji(guild, EMOJI_NAMES.leaderboard);
+
     const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
     container.addMediaGalleryComponents(
@@ -70,11 +76,11 @@ export const giveawayCommand = {
 
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `# ${LOGO} GIVEAWAY\n` +
-        `> 🎁 **Prize:** ${prize}\n` +
-        `> 🏆 **Winners:** ${winners}\n` +
-        `> ⏰ **Ends:** <t:${Math.floor(endsAt / 1000)}:R>\n` +
-        `> 👤 **Host:** ${cmd.user.displayName}\n\n` +
+        `# ${logo} GIVEAWAY\n` +
+        `> ${eShop} **Prize:** ${prize}\n` +
+        `> ${eLeaderboard} **Winners:** ${winners}\n` +
+        `> ${eLogoNoBg} **Ends:** <t:${Math.floor(endsAt / 1000)}:R>\n` +
+        `> ${eLogoNoBg} **Host:** ${cmd.user.displayName}\n\n` +
         `Click below to **enter**!`
       )
     );
@@ -95,7 +101,7 @@ export const giveawayCommand = {
 
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+      new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`)
     );
 
     const msg = await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -135,16 +141,16 @@ export const giveawayCommand = {
       );
       endContainer.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# ${LOGO} GIVEAWAY ENDED\n` +
-          `> 🎁 **Prize:** ${giveaway.prize}\n` +
-          `> 🏆 **Winner(s):** ${winnerMentions}\n` +
-          `> 👥 **Entries:** ${entriesArr.length}\n` +
-          `> 👤 **Host:** <@${giveaway.hostId}>`
+          `# ${logo} GIVEAWAY ENDED\n` +
+          `> ${eShop} **Prize:** ${giveaway.prize}\n` +
+          `> ${eLeaderboard} **Winner(s):** ${winnerMentions}\n` +
+          `> ${eLogoNoBg} **Entries:** ${entriesArr.length}\n` +
+          `> ${eLogoNoBg} **Host:** <@${giveaway.hostId}>`
         )
       );
       endContainer.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
       endContainer.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+        new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`)
       );
 
       try {

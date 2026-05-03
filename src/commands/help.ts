@@ -4,7 +4,7 @@ import {
   MediaGalleryBuilder, MediaGalleryItemBuilder, MessageFlags,
 } from "discord.js";
 import { BOT_COLOR, APP_NAME, APP_URL, BOT_FOOTER } from "../config";
-import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 /** Command categories */
 const CATEGORIES = [
@@ -81,7 +81,7 @@ export const helpCommand = {
     // Header
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `# ${LOGO} ${APP_NAME} — Command Center\n${eHelp} Manage your profile, view stats, and flex — right from Discord.\n-# ${CATEGORIES.reduce((a, c) => a + c.commands.length, 0)} commands loaded`
+        `# ${logoEmoji(guild)} ${APP_NAME} — Command Center\n${eHelp} Manage your profile, view stats, and flex — right from Discord.\n-# ${CATEGORIES.reduce((a, c) => a + c.commands.length, 0)} commands loaded`
       )
     );
 
@@ -131,7 +131,7 @@ export const helpCommand = {
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# ${LOGO} ${BOT_FOOTER}`
+        `-# ${logoEmoji(guild)} ${BOT_FOOTER}`
       )
     );
 

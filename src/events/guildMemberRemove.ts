@@ -4,7 +4,7 @@ import {
   MediaGalleryBuilder, MediaGalleryItemBuilder, ThumbnailBuilder,
 } from "discord.js";
 import { CHANNELS, BOT_FOOTER, GOODBYE_COLOR, APP_NAME } from "../config";
-import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 import { logText } from "../utils/logger";
 
 export async function handleGuildMemberRemove(
@@ -57,7 +57,7 @@ export async function handleGuildMemberRemove(
   container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
   container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`-# ${LOGO} ${APP_NAME} • ${BOT_FOOTER}`)
+    new TextDisplayBuilder().setContent(`-# ${logoEmoji(member.guild)} ${APP_NAME} • ${BOT_FOOTER}`)
   );
 
   try {

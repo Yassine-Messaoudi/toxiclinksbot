@@ -6,7 +6,7 @@ import {
 import { prisma } from "../index";
 import { BOT_COLOR, BOT_FOOTER } from "../config";
 import { ephemeralErrorV2 } from "../utils/embeds";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 export const analyticsCommand = {
   name: "analytics",
@@ -37,6 +37,11 @@ export const analyticsCommand = {
     const totalViews = dbUser.profile?.totalViews || 0;
     const totalClicks = dbUser.links.reduce((sum, l) => sum + l.clicks, 0);
 
+    const guild = cmd.guild;
+    const logo = logoEmoji(guild);
+    const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
+    const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
+
     const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
     container.addMediaGalleryComponents(
@@ -46,23 +51,23 @@ export const analyticsCommand = {
     );
 
     let body =
-      `# ${LOGO} Analytics — @${dbUser.username}\n\n` +
-      `> 👁️ **Total Views:** ${totalViews.toLocaleString()}\n` +
-      `> 🖱️ **Total Clicks:** ${totalClicks.toLocaleString()}\n` +
-      `> 🔗 **Links:** ${dbUser.links.length}`;
+      `# ${logo} Analytics — @${dbUser.username}\n\n` +
+      `> ${eWebsite} **Total Views:** ${totalViews.toLocaleString()}\n` +
+      `> ${eLogoNoBg} **Total Clicks:** ${totalClicks.toLocaleString()}\n` +
+      `> ${eWebsite} **Links:** ${dbUser.links.length}`;
 
     if (dbUser.links.length > 0) {
       const topLinks = dbUser.links
         .map((l, i) => `> **${i + 1}.** ${l.title} — ${l.clicks} clicks`)
         .join("\n");
-      body += `\n\n### 📎 Top Links\n${topLinks}`;
+      body += `\n\n### ${eLogoNoBg} Top Links\n${topLinks}`;
     }
 
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(body));
 
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+      new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`)
     );
 
     await cmd.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });

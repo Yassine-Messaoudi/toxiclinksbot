@@ -5,7 +5,7 @@ import {
 } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 import { CHANNELS, ROLES, BOT_COLOR, APP_URL, BOT_FOOTER, APP_NAME } from "../config";
-import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji, guildEmojiObj } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, guildEmojiObj, logoEmoji } from "../utils/branding";
 import { logText } from "../utils/logger";
 
 const prisma = new PrismaClient();
@@ -56,11 +56,11 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   const createdDays = Math.floor((Date.now() - member.user.createdTimestamp) / 86400000);
   const avatarUrl = member.user.displayAvatarURL({ size: 512 });
   const guild = member.guild;
-  const logoEmoji = LOGO;
-  const eWebsite = guildEmoji(guild, EMOJI_NAMES.website, "🌐");
-  const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp, "🎫");
-  const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg, "⚡");
-  const eNote = guildEmoji(guild, EMOJI_NAMES.note, "📜");
+  const logo = logoEmoji(guild);
+  const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
+  const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp);
+  const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
+  const eNote = guildEmoji(guild, EMOJI_NAMES.note);
 
   // ── Components V2: Welcome Container ──
   const container = new ContainerBuilder()
@@ -76,7 +76,7 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   // Header with logo emoji + welcome title
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `# ${logoEmoji} Welcome to ${APP_NAME}\n` +
+      `# ${logo} Welcome to ${APP_NAME}\n` +
       `**${member.user.displayName}** just joined the **toxic** side.`
     )
   );
@@ -87,7 +87,7 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   const statsSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `### ⚡ Member #${memberCount.toLocaleString()}${ordinal}\n` +
+        `### ${eLogoNoBg} Member #${memberCount.toLocaleString()}${ordinal}\n` +
         `-# Account Age: **${createdDays.toLocaleString()}** days\n` +
         `-# Server Members: **${memberCount.toLocaleString()}**`
       )
@@ -170,7 +170,7 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   // Footer
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# ${logoEmoji} ${APP_NAME} • ${BOT_FOOTER}`
+      `-# ${logoEmoji(guild)} ${APP_NAME} \u2022 ${BOT_FOOTER}`
     )
   );
 
@@ -183,7 +183,7 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
     });
   } catch {}
 
-  await logText(`☠️ **${member.user.tag}** joined the server (${memberCount} members)`);
+  await logText(`${logo} **${member.user.tag}** joined the server (${memberCount} members)`);
 }
 
 function getOrdinal(n: number): string {

@@ -7,7 +7,7 @@ import {
 import { prisma } from "../index";
 import { BOT_COLOR, APP_URL, BOT_FOOTER } from "../config";
 import { ephemeralErrorV2 } from "../utils/embeds";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 export const lookupCommand = {
   name: "lookup",
@@ -40,6 +40,12 @@ export const lookupCommand = {
     const views = dbUser.profile?.totalViews || 0;
     const badgeText = dbUser.badges.map((b) => `\`${b.type}\``).join(" ") || "None";
 
+    const guild = cmd.guild;
+    const logo = logoEmoji(guild);
+    const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
+    const eLeaderboard = guildEmoji(guild, EMOJI_NAMES.leaderboard);
+    const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
+
     const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
     container.addMediaGalleryComponents(
@@ -52,7 +58,7 @@ export const lookupCommand = {
       const header = new SectionBuilder()
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
-            `# ${LOGO} ${dbUser.displayName || dbUser.username}\n-# @${dbUser.username} • ${dbUser.plan}`
+            `# ${logo} ${dbUser.displayName || dbUser.username}\n-# @${dbUser.username} • ${dbUser.plan}`
           )
         )
         .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl));
@@ -60,7 +66,7 @@ export const lookupCommand = {
     } else {
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# ${LOGO} ${dbUser.displayName || dbUser.username}\n-# @${dbUser.username} • ${dbUser.plan}`
+          `# ${logo} ${dbUser.displayName || dbUser.username}\n-# @${dbUser.username} • ${dbUser.plan}`
         )
       );
     }
@@ -70,8 +76,8 @@ export const lookupCommand = {
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         `${dbUser.bio || "*No bio set*"}\n\n` +
-        `> 👁️ **Views:** ${views.toLocaleString()}\n` +
-        `> 🏅 **Badges:** ${badgeText}`
+        `> ${eWebsite} **Views:** ${views.toLocaleString()}\n` +
+        `> ${eLeaderboard} **Badges:** ${badgeText}`
       )
     );
 
@@ -79,7 +85,7 @@ export const lookupCommand = {
 
     const linkSection = new SectionBuilder()
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ⚡ View full profile`)
+        new TextDisplayBuilder().setContent(`-# ${eLogoNoBg} View full profile`)
       )
       .setButtonAccessory(
         new ButtonBuilder().setLabel("Open").setURL(profileUrl).setStyle(ButtonStyle.Link)
@@ -88,7 +94,7 @@ export const lookupCommand = {
 
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+      new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`)
     );
 
     await cmd.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });

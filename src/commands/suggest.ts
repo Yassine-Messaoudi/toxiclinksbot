@@ -5,7 +5,7 @@ import {
 } from "discord.js";
 import { BOT_COLOR, CHANNELS, BOT_FOOTER } from "../config";
 import { ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
-import { LOGO } from "../utils/branding";
+import { EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 export const suggestCommand = {
   name: "suggest",
@@ -27,12 +27,16 @@ export const suggestCommand = {
       return;
     }
 
+    const guild = cmd.guild;
+    const logo = logoEmoji(guild);
+    const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
+
     const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
     const section = new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# 💡 Suggestion\n${idea}\n\n-# by **${cmd.user.displayName}** • Vote with reactions below`
+          `# ${eLogoNoBg} Suggestion\n${idea}\n\n-# by **${cmd.user.displayName}** • Vote with reactions below`
         )
       )
       .setThumbnailAccessory(
@@ -42,7 +46,7 @@ export const suggestCommand = {
 
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+      new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`)
     );
 
     const msg = await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });

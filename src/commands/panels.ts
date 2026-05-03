@@ -5,7 +5,7 @@ import {
   MessageFlags, PermissionFlagsBits,
 } from "discord.js";
 import { BOT_COLOR, APP_NAME, APP_URL, BOT_FOOTER } from "../config";
-import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji, guildEmojiObj } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, guildEmojiObj, logoEmoji } from "../utils/branding";
 import { errorEmbed, successEmbed } from "../utils/embeds";
 
 export const panelsCommand = {
@@ -61,7 +61,7 @@ async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
   // Header
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `# ${LOGO} ${APP_NAME} — Server Rules\nPlease read and follow these rules to keep our community safe and enjoyable.`
+      `# ${logoEmoji(guild)} ${APP_NAME} — Server Rules\nPlease read and follow these rules to keep our community safe and enjoyable.`
     )
   );
 
@@ -107,7 +107,7 @@ async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
 
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# ${LOGO} ${APP_NAME} • By joining this server you agree to follow these rules. • ${BOT_FOOTER}`
+      `-# ${logoEmoji(guild)} ${APP_NAME} • By joining this server you agree to follow these rules. • ${BOT_FOOTER}`
     )
   );
 
@@ -139,7 +139,7 @@ async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
   // Header
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `# ${LOGO} ${APP_NAME} — Pricing\nChoose your level of toxic luxury.`
+      `# ${logoEmoji(guild)} ${APP_NAME} — Pricing\nChoose your level of toxic luxury.`
     )
   );
 
@@ -148,7 +148,7 @@ async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
   // Free tier
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `### ☠️ Free — $0 forever\n` +
+      `### ${logoEmoji(guild)} Free — $0 forever\n` +
       `> Aesthetic profile page\n` +
       `> 5 custom links\n` +
       `> 3 free alt themes\n` +
@@ -213,7 +213,7 @@ async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
 
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# ${LOGO} ${BOT_FOOTER} • All plans include a 7-day money-back guarantee.`
+      `-# ${logoEmoji(guild)} ${BOT_FOOTER} • All plans include a 7-day money-back guarantee.`
     )
   );
 
@@ -245,7 +245,7 @@ async function sendChatPanel(cmd: ChatInputCommandInteraction) {
   // Header
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `# ${LOGO} Welcome to ${APP_NAME}\nThis is the main chat. Say hi, vibe, share your profile, make friends.`
+      `# ${logoEmoji(guild)} Welcome to ${APP_NAME}\nThis is the main chat. Say hi, vibe, share your profile, make friends.`
     )
   );
 
@@ -254,7 +254,7 @@ async function sendChatPanel(cmd: ChatInputCommandInteraction) {
   // Guidelines
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `### 💬 Chat Guidelines\n` +
+      `### ${guildEmoji(guild, EMOJI_NAMES.note)} Chat Guidelines\n` +
       `> Be respectful — no toxicity toward members\n` +
       `> Keep it on-topic — use the right channels\n` +
       `> Share your profile — flex your page\n` +
@@ -298,7 +298,7 @@ async function sendChatPanel(cmd: ChatInputCommandInteraction) {
   // Footer
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# ${LOGO} ${APP_NAME} • Join the conversation 💬 • ${BOT_FOOTER}`
+      `-# ${logoEmoji(guild)} ${APP_NAME} • Join the conversation ${guildEmoji(guild, EMOJI_NAMES.note)} • ${BOT_FOOTER}`
     )
   );
 

@@ -7,7 +7,7 @@ import {
 import { prisma } from "../index";
 import { BOT_COLOR, APP_URL, BOT_FOOTER } from "../config";
 import { ephemeralErrorV2 } from "../utils/embeds";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 export const profileCommand = {
   name: "profile",
@@ -45,7 +45,12 @@ export const profileCommand = {
     const views = dbUser.profile?.totalViews || 0;
     const linkCount = dbUser.links.length;
     const socialCount = dbUser.socialLinks.length;
-    const planEmoji = dbUser.plan === "PREMIUM" ? "👑" : dbUser.plan === "VERIFIED" ? "✅" : "🔗";
+    const guild = cmd.guild;
+    const logo = logoEmoji(guild);
+    const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
+    const eLeaderboard = guildEmoji(guild, EMOJI_NAMES.leaderboard);
+    const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
+    const planEmoji = dbUser.plan === "PREMIUM" ? "👑" : dbUser.plan === "VERIFIED" ? guildEmoji(guild, EMOJI_NAMES.verified) : eWebsite;
     const badgeText = dbUser.badges.map((b) => `\`${b.type}\``).join(" ") || "None";
     const avatarUrl = dbUser.avatarUrl || dbUser.image || targetUser.displayAvatarURL({ size: 512 });
 
@@ -70,7 +75,7 @@ export const profileCommand = {
     const headerSection = new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# ${LOGO} ${dbUser.displayName || dbUser.username}\n` +
+          `# ${logo} ${dbUser.displayName || dbUser.username}\n` +
           `-# @${dbUser.username} • ${planEmoji} ${dbUser.plan}`
         )
       )
@@ -84,8 +89,8 @@ export const profileCommand = {
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         `${bio}\n\n` +
-        `> 👁️ **Views:** ${views.toLocaleString()} • 🔗 **Links:** ${linkCount} • 📱 **Socials:** ${socialCount}\n` +
-        `> 🏅 **Badges:** ${badgeText}`
+        `> ${eWebsite} **Views:** ${views.toLocaleString()} • ${eLogoNoBg} **Links:** ${linkCount} • ${eWebsite} **Socials:** ${socialCount}\n` +
+        `> ${eLeaderboard} **Badges:** ${badgeText}`
       )
     );
 
@@ -94,7 +99,7 @@ export const profileCommand = {
       const linkText = dbUser.links.map((l, i) => `> **${i + 1}.** [${l.title}](${l.url})`).join("\n");
       container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
       container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`### 📎 Top Links\n${linkText}`)
+        new TextDisplayBuilder().setContent(`### ${eLogoNoBg} Top Links\n${linkText}`)
       );
     }
 
@@ -103,7 +108,7 @@ export const profileCommand = {
     // Profile link button
     const profileSection = new SectionBuilder()
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ⚡ View the full profile on ToxicLinks`)
+        new TextDisplayBuilder().setContent(`-# ${eLogoNoBg} View the full profile on ToxicLinks`)
       )
       .setButtonAccessory(
         new ButtonBuilder()
@@ -116,7 +121,7 @@ export const profileCommand = {
     // Footer
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+      new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`)
     );
 
     await cmd.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
