@@ -274,6 +274,7 @@ model Badge {
   icon      String?
   color     String?
   visible   Boolean   @default(true)
+  order     Int       @default(0)
   grantedAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
