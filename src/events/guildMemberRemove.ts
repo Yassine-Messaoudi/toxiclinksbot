@@ -4,7 +4,7 @@ import {
   MediaGalleryBuilder, MediaGalleryItemBuilder, ThumbnailBuilder,
 } from "discord.js";
 import { CHANNELS, BOT_FOOTER, GOODBYE_COLOR, APP_NAME } from "../config";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji } from "../utils/branding";
 import { logText } from "../utils/logger";
 
 export async function handleGuildMemberRemove(
@@ -34,7 +34,7 @@ export async function handleGuildMemberRemove(
 
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `# 💀 Goodbye, ${displayName}\n**${tag}** has left the server.`
+      `# ${guildEmoji(member.guild, EMOJI_NAMES.logoNoBg, "💀")} Goodbye, ${displayName}\n**${tag}** has left the server.`
     )
   );
 

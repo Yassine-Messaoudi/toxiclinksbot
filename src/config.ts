@@ -85,3 +85,6 @@ export const ROLES = {
 };
 
 export const GUILD_ID = process.env.GUILD_ID || "";
+
+/** Voice channel the bot should always sit in (like other bots) */
+export const VOICE_CHANNEL_ID = process.env.VOICE_CHANNEL_ID || "1500523434373812275";

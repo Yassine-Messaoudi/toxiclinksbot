@@ -4,7 +4,7 @@ import {
   MediaGalleryBuilder, MediaGalleryItemBuilder, MessageFlags,
 } from "discord.js";
 import { BOT_COLOR, APP_NAME, APP_URL, BOT_FOOTER } from "../config";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji } from "../utils/branding";
 
 /** Command categories */
 const CATEGORIES = [
@@ -59,6 +59,15 @@ export const helpCommand = {
     if (!interaction.isChatInputCommand()) return;
     const cmd = interaction as ChatInputCommandInteraction;
 
+    const guild = cmd.guild;
+    const eHelp = guildEmoji(guild, EMOJI_NAMES.help, "📖");
+    const eLeaderboard = guildEmoji(guild, EMOJI_NAMES.leaderboard, "🏆");
+    const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp, "🎫");
+    const eWebsite = guildEmoji(guild, EMOJI_NAMES.website, "🌐");
+    const eShop = guildEmoji(guild, EMOJI_NAMES.shop, "🛒");
+    const eNote = guildEmoji(guild, EMOJI_NAMES.note, "📜");
+    const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg, "⚡");
+
     const container = new ContainerBuilder()
       .setAccentColor(BOT_COLOR);
 
@@ -72,7 +81,7 @@ export const helpCommand = {
     // Header
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `# ${LOGO} ${APP_NAME} — Command Center\nManage your profile, view stats, and flex — right from Discord.\n-# ${CATEGORIES.reduce((a, c) => a + c.commands.length, 0)} commands loaded`
+        `# ${LOGO} ${APP_NAME} — Command Center\n${eHelp} Manage your profile, view stats, and flex — right from Discord.\n-# ${CATEGORIES.reduce((a, c) => a + c.commands.length, 0)} commands loaded`
       )
     );
 
@@ -96,7 +105,7 @@ export const helpCommand = {
     // Quick links as sections with buttons
     const websiteSection = new SectionBuilder()
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ☠️ Visit **${APP_NAME}** — build your toxic profile`)
+        new TextDisplayBuilder().setContent(`-# ${eWebsite} Visit **${APP_NAME}** — build your toxic profile`)
       )
       .setButtonAccessory(
         new ButtonBuilder()
@@ -108,7 +117,7 @@ export const helpCommand = {
 
     const dashSection = new SectionBuilder()
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("-# ⚡ Manage your links, themes, badges & more")
+        new TextDisplayBuilder().setContent(`-# ${eLogo} Manage your links, themes, badges & more`)
       )
       .setButtonAccessory(
         new ButtonBuilder()

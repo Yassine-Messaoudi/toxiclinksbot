@@ -9,7 +9,9 @@ import {
   ChatInputCommandInteraction,
   REST,
   Routes,
+  ChannelType,
 } from "discord.js";
+import { joinVoiceChannel, VoiceConnectionStatus, entersState } from "@discordjs/voice";
 import { PrismaClient } from "@prisma/client";
 import Redis from "ioredis";
 
@@ -52,7 +54,7 @@ import { handleButtonInteraction } from "./events/interactionButtons";
 
 // ── Utils ──
 import { initLogger, logText } from "./utils/logger";
-import { APP_NAME, GUILD_ID } from "./config";
+import { APP_NAME, GUILD_ID, VOICE_CHANNEL_ID } from "./config";
 
 // ── Exports ──
 export const prisma = new PrismaClient();
@@ -76,6 +78,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
@@ -127,6 +130,53 @@ client.once(Events.ClientReady, async (readyClient) => {
       syncAllBoosterBadges(guild, prisma).catch((err) =>
         console.error("[Bot] Booster badge startup sync failed:", err)
       );
+    }
+  }
+
+  // ── Always sit in voice channel (like other bots) ──
+  if (VOICE_CHANNEL_ID && GUILD_ID) {
+    const guild = readyClient.guilds.cache.get(GUILD_ID);
+    if (guild) {
+      const vc = guild.channels.cache.get(VOICE_CHANNEL_ID);
+      if (vc && vc.type === ChannelType.GuildVoice) {
+        try {
+          const connection = joinVoiceChannel({
+            channelId: VOICE_CHANNEL_ID,
+            guildId: GUILD_ID,
+            adapterCreator: guild.voiceAdapterCreator,
+            selfDeaf: true,
+            selfMute: true,
+          });
+          connection.on(VoiceConnectionStatus.Disconnected, async () => {
+            try {
+              await Promise.race([
+                entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+              ]);
+              // Seems to be reconnecting automatically
+            } catch {
+              // Auto-rejoin after disconnect
+              try {
+                joinVoiceChannel({
+                  channelId: VOICE_CHANNEL_ID,
+                  guildId: GUILD_ID,
+                  adapterCreator: guild.voiceAdapterCreator,
+                  selfDeaf: true,
+                  selfMute: true,
+                });
+                console.log("[Bot] Rejoined voice channel after disconnect");
+              } catch (err) {
+                console.warn("[Bot] Failed to rejoin voice:", (err as Error).message);
+              }
+            }
+          });
+          console.log(`[Bot] Joined voice channel: ${vc.name}`);
+        } catch (err) {
+          console.warn("[Bot] Failed to join voice channel:", (err as Error).message);
+        }
+      } else {
+        console.warn(`[Bot] Voice channel ${VOICE_CHANNEL_ID} not found or not a voice channel`);
+      }
     }
   }
 

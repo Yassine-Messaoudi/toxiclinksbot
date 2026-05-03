@@ -391,6 +391,7 @@ model Template {
   authorId      String
   name          String
   description   String?  @db.Text
+  category      String?  // dark, light, anime, neon, minimal, aesthetic, gaming, etc.
   previewUrl    String?  // screenshot / thumbnail URL
   themeBlob     Json     @default("{}") // full theme settings snapshot
   tags          String[] @default([])

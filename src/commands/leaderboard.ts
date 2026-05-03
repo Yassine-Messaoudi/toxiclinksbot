@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder, Interaction } from "discord.js";
 import { prisma } from "../index";
 import { BOT_COLOR, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL } from "../config";
+import { EMOJI_NAMES, guildEmoji } from "../utils/branding";
 
 export const leaderboardCommand = {
   name: "leaderboard",
@@ -28,6 +29,7 @@ export const leaderboardCommand = {
       return;
     }
 
+    const eLb = guildEmoji(cmd.guild, EMOJI_NAMES.leaderboard, "🏆");
     const medals = ["🥇", "🥈", "🥉"];
     const list = users
       .map((u, i) => {
@@ -40,7 +42,7 @@ export const leaderboardCommand = {
 
     const embed = new EmbedBuilder()
       .setColor(0xffd700)
-      .setTitle("🏆 Leaderboard — Top Profiles")
+      .setTitle(`${eLb} Leaderboard — Top Profiles`)
       .setDescription(list)
       .setThumbnail(SKULL_GIF_URL)
       .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })

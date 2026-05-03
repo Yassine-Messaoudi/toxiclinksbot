@@ -24,16 +24,20 @@ export const EMOJI_NAMES = {
   logo: "toxiclinks",
   dashboard: "dashboard",
   needhelp: "needhelp",
-  note: "Note",
+  note: "note",
   shop: "shop",
   support: "Support",
   verified: "Verifiedbadgeapplication",
   verifiedBadge: "verifiedbadge",
-  website: "website",
+  website: "web",
   logoNoBg: "Logowithoutbackground",
   store: "store",
   billing: "purshacebilling",
   accountRecovery: "accountrecovery",
+  leaderboard: "leadboard",
+  ldboard: "ldboard",
+  help: "help",
+  reset: "reset",
 };
 
 /** Resolve a server emoji by name → `<:name:id>` string, or Unicode fallback */

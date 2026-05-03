@@ -5,7 +5,7 @@ import {
   MessageFlags, PermissionFlagsBits,
 } from "discord.js";
 import { BOT_COLOR, APP_NAME, APP_URL, BOT_FOOTER } from "../config";
-import { BANNER_GIF, LOGO } from "../utils/branding";
+import { BANNER_GIF, LOGO, EMOJI_NAMES, guildEmoji, guildEmojiObj } from "../utils/branding";
 import { errorEmbed, successEmbed } from "../utils/embeds";
 
 export const panelsCommand = {
@@ -33,6 +33,10 @@ export const panelsCommand = {
 // ═══════════════════════════════════════════════════════════
 async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
   const ch = cmd.channel as TextChannel;
+  const guild = cmd.guild;
+  const eNote = guildEmoji(guild, EMOJI_NAMES.note, "📜");
+  const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp, "🎫");
+  const eSupportObj = guildEmojiObj(guild!, EMOJI_NAMES.needhelp);
 
   const rules = [
     { emoji: "1️⃣", title: "Be Respectful", desc: "No harassment, hate speech, discrimination, or personal attacks. Keep it civil." },
@@ -87,14 +91,14 @@ async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
   const supportSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# 🎫 Need help or want to report someone? Open a **support ticket**.`
+        `-# ${eSupport} Need help or want to report someone? Open a **support ticket**.`
       )
     )
     .setButtonAccessory(
       new ButtonBuilder()
         .setCustomId("rules_ticket")
         .setLabel("Open Ticket")
-        .setEmoji("🎫")
+        .setEmoji(eSupportObj || "🎫")
         .setStyle(ButtonStyle.Success)
     );
   container.addSectionComponents(supportSection);
@@ -119,6 +123,9 @@ async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
 // ═══════════════════════════════════════════════════════════
 async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
   const ch = cmd.channel as TextChannel;
+  const guild = cmd.guild;
+  const eShop = guildEmoji(guild, EMOJI_NAMES.shop, "🛒");
+  const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg, "⚡");
 
   const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
@@ -191,7 +198,7 @@ async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
   const upgradeSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# ⚡ Ready to upgrade? Visit the dashboard to subscribe.`
+        `-# ${eLogo} Ready to upgrade? Visit the dashboard to subscribe.`
       )
     )
     .setButtonAccessory(
@@ -222,6 +229,9 @@ async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
 // ═══════════════════════════════════════════════════════════
 async function sendChatPanel(cmd: ChatInputCommandInteraction) {
   const ch = cmd.channel as TextChannel;
+  const guild = cmd.guild;
+  const eWebsite = guildEmoji(guild, EMOJI_NAMES.website, "🌐");
+  const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg, "⚡");
 
   const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
@@ -258,7 +268,7 @@ async function sendChatPanel(cmd: ChatInputCommandInteraction) {
   const profileSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# ⚡ Don't have a profile yet? Create one now.`
+        `-# ${eLogo} Don't have a profile yet? Create one now.`
       )
     )
     .setButtonAccessory(
@@ -272,7 +282,7 @@ async function sendChatPanel(cmd: ChatInputCommandInteraction) {
   const discordSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# 🔗 Already have a profile? Share it with the community!`
+        `-# ${eWebsite} Already have a profile? Share it with the community!`
       )
     )
     .setButtonAccessory(
