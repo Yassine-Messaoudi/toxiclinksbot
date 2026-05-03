@@ -5,8 +5,7 @@ import { activeScrapes } from "../commands/scrape";
 import { createTicket } from "../commands/ticket";
 import { successEmbed, errorEmbed, ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
 import { BOT_COLOR, BOT_FOOTER, LOGO_URL, SKULL_GIF_URL, LINE_SHORT, APP_NAME } from "../config";
-
-const OPTION_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"];
+import { EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 export async function handleButtonInteraction(interaction: ButtonInteraction) {
   const id = interaction.customId;
@@ -20,7 +19,7 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
       return;
     }
     scrape.stopped = true;
-    await interaction.reply(ephemeralSuccessV2("⏹ Stopping scrape... it will finish the current item and stop."));
+    await interaction.reply(ephemeralSuccessV2("Stopping scrape... it will finish the current item and stop.", interaction.guild));
     return;
   }
 
@@ -44,7 +43,8 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
   if (id === "giveaway_entries") {
     const giveaway = activeGiveaways.get(interaction.message.id);
     const count = giveaway?.entries.size || 0;
-    await interaction.reply({ content: `👥 **${count}** entr${count === 1 ? "y" : "ies"} so far`, ephemeral: true });
+    const eLb = guildEmoji(interaction.guild, EMOJI_NAMES.leaderboard);
+    await interaction.reply({ content: `${eLb} **${count}** entr${count === 1 ? "y" : "ies"} so far`, ephemeral: true });
     return;
   }
 
@@ -61,10 +61,12 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
     if (previousVote === optIndex) {
       // Remove vote
       poll.votes.delete(interaction.user.id);
-      await interaction.reply({ content: "🗳️ Vote removed!", ephemeral: true });
+      const eV1 = guildEmoji(interaction.guild, EMOJI_NAMES.verified);
+      await interaction.reply({ content: `${eV1} Vote removed!`, ephemeral: true });
     } else {
       poll.votes.set(interaction.user.id, optIndex);
-      await interaction.reply({ content: `🗳️ Voted for **${poll.options[optIndex]}**!`, ephemeral: true });
+      const eV2 = guildEmoji(interaction.guild, EMOJI_NAMES.verified);
+      await interaction.reply({ content: `${eV2} Voted for **${poll.options[optIndex]}**!`, ephemeral: true });
     }
 
     // Update the embed with new counts
@@ -73,17 +75,18 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
       Array.from(poll.votes.values()).filter(v => v === i).length
     );
 
+    const eLogo = guildEmoji(interaction.guild, EMOJI_NAMES.logoNoBg);
     const description = poll.options.map((opt, i) => {
       const count = counts[i];
       const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
       const bar = "█".repeat(Math.round(pct / 10)) + "░".repeat(10 - Math.round(pct / 10));
-      return `${OPTION_EMOJIS[i]} **${opt}** — ${count} vote${count !== 1 ? "s" : ""} (${pct}%)\n${bar}`;
+      return `${eLogo} **${i + 1}. ${opt}** — ${count} vote${count !== 1 ? "s" : ""} (${pct}%)\n${bar}`;
     }).join("\n\n");
 
     const embed = new EmbedBuilder()
       .setColor(BOT_COLOR)
       .setAuthor({ name: `${APP_NAME} — Poll`, iconURL: LOGO_URL })
-      .setTitle(`☠️  ${poll.question}`)
+      .setTitle(poll.question)
       .setDescription([
         `*${LINE_SHORT}*`,
         "",
@@ -91,7 +94,7 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
         "",
         `*${LINE_SHORT}*`,
         "",
-        `> ⚡ \`${totalVotes}\` total vote${totalVotes !== 1 ? "s" : ""}`,
+        `> ${eLogo} \`${totalVotes}\` total vote${totalVotes !== 1 ? "s" : ""}`,
       ].join("\n"))
       .setThumbnail(SKULL_GIF_URL)
       .setFooter({ text: BOT_FOOTER, iconURL: LOGO_URL })

@@ -23,7 +23,7 @@ export async function handleGuildMemberUpdate(
     await grantBoosterBadge(newMember.user.id, prisma);
   } else if (wasBoosting && !isBoosting) {
     await revokeBoosterBadge(newMember.user.id, prisma);
-    await logText(`💔 **${newMember.user.tag}** stopped boosting the server.`);
+    await logText(`**${newMember.user.tag}** stopped boosting the server.`);
   }
 }
 
@@ -90,7 +90,7 @@ async function handleNewBoost(member: GuildMember, client: Client) {
     });
   } catch {}
 
-  await logText(`💎 **${member.user.tag}** boosted the server! (${boostCount} boosts, Level ${member.guild.premiumTier})`);
+  await logText(`**${member.user.tag}** boosted the server! (${boostCount} boosts, Level ${member.guild.premiumTier})`);
 }
 
 /* ── Booster badge helpers ── */

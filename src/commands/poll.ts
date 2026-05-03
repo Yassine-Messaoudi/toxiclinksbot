@@ -5,7 +5,7 @@ import {
   MediaGalleryBuilder, MediaGalleryItemBuilder,
 } from "discord.js";
 import { BOT_COLOR, BOT_FOOTER } from "../config";
-import { BANNER_GIF, logoEmoji } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 /** In-memory poll store */
 export const activePolls = new Map<string, {
@@ -14,8 +14,6 @@ export const activePolls = new Map<string, {
   votes: Map<string, number>; // userId -> optionIndex
   creatorId: string;
 }>();
-
-const OPTION_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"];
 
 export const pollCommand = {
   name: "poll",
@@ -31,7 +29,8 @@ export const pollCommand = {
     const opt5 = cmd.options.getString("option5") || null;
 
     const options = [opt1, opt2, opt3, opt4, opt5].filter(Boolean) as string[];
-    const optionLines = options.map((opt, i) => `> ${OPTION_EMOJIS[i]} **${opt}** — \`0 votes\``).join("\n");
+    const eLogo = guildEmoji(cmd.guild, EMOJI_NAMES.logoNoBg);
+    const optionLines = options.map((opt, i) => `> ${eLogo} **${i + 1}. ${opt}** — \`0 votes\``).join("\n");
 
     const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
@@ -52,8 +51,7 @@ export const pollCommand = {
     const buttons: ButtonBuilder[] = options.map((opt, i) =>
       new ButtonBuilder()
         .setCustomId(`poll_vote_${i}`)
-        .setLabel(opt.slice(0, 80))
-        .setEmoji(OPTION_EMOJIS[i])
+        .setLabel(`${i + 1}. ${opt.slice(0, 75)}`)
         .setStyle(ButtonStyle.Secondary)
     );
 

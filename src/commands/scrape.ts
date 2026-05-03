@@ -8,8 +8,8 @@ import {
 import path from "path";
 import { BOT_COLOR, APP_NAME, BOT_FOOTER } from "../config";
 import { ephemeralErrorV2 } from "../utils/embeds";
-import { BANNER_GIF, LOGO } from "../utils/branding";
-// Note: LOGO is static fallback ("☠️") — scrape helpers don't have guild context
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
+import { Guild } from "discord.js";
 import { client } from "../index";
 
 /** Default asset channel names to create */
@@ -23,16 +23,6 @@ const ASSET_CHANNELS = [
   "custom-fonts",
 ];
 
-/** Emoji per asset type for embed decoration */
-const ASSET_EMOJI: Record<string, string> = {
-  backgrounds: "🖼️",
-  pfps: "👤",
-  banners: "🏳️",
-  cursors: "🖱️",
-  icons: "✨",
-  audios: "🎵",
-  "custom-fonts": "🔤",
-};
 
 /** Active scrape tracking — keyed by `guildId_userId` */
 export const activeScrapes = new Map<string, { stopped: boolean }>();
@@ -42,35 +32,39 @@ function scrapeKey(guildId: string, userId: string) {
 }
 
 /** Build a V2 status container with stop button */
-function statusContainer(text: string): ContainerBuilder {
+function statusContainer(text: string, guild?: Guild | null): ContainerBuilder {
+  const logo = logoEmoji(guild);
   const c = new ContainerBuilder().setAccentColor(BOT_COLOR);
-  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${LOGO} Scrape\n${text}`));
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${logo} Scrape\n${text}`));
   c.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId("scrape_stop").setLabel("⏹ Stop").setStyle(ButtonStyle.Danger)
+    new ButtonBuilder().setCustomId("scrape_stop").setLabel("Stop").setStyle(ButtonStyle.Danger)
   );
   c.addActionRowComponents(row);
   c.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`));
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`));
   return c;
 }
 
 /** Build a V2 completion container */
-function completionContainer(title: string, body: string): ContainerBuilder {
+function completionContainer(title: string, body: string, guild?: Guild | null): ContainerBuilder {
+  const logo = logoEmoji(guild);
   const c = new ContainerBuilder().setAccentColor(BOT_COLOR);
   c.addMediaGalleryComponents(
     new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(BANNER_GIF))
   );
-  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${LOGO} ${title}\n${body}`));
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${logo} ${title}\n${body}`));
   c.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`));
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`));
   return c;
 }
 
 /** Build a V2 error container (for editReply — no flags needed) */
-function errorContainer(message: string): ContainerBuilder {
+function errorContainer(message: string, guild?: Guild | null): ContainerBuilder {
+  const logo = logoEmoji(guild);
+  const eNeedHelp = guildEmoji(guild, EMOJI_NAMES.needhelp);
   const c = new ContainerBuilder().setAccentColor(0xff4444);
-  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ✖ Error\n${message}\n-# ${LOGO} ${BOT_FOOTER}`));
+  c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${eNeedHelp} Error\n${message}\n-# ${logo} ${BOT_FOOTER}`));
   return c;
 }
 
@@ -217,7 +211,7 @@ export const scrapeCommand = {
     if (sub === "setup") {
       // Reply immediately with V2 status
       await cmd.reply({
-        components: [statusContainer("⏳ Setting up asset channels...")],
+        components: [statusContainer("Setting up asset channels...", cmd.guild)],
         flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
       });
 
@@ -244,12 +238,12 @@ export const scrapeCommand = {
         if (exists) {
           existing.push(name);
         } else {
-          const emoji = ASSET_EMOJI[name] || "📦";
+          const eShop = guildEmoji(guild, EMOJI_NAMES.shop);
           await guild.channels.create({
             name,
             type: ChannelType.GuildText,
             parent: category.id,
-            topic: `${emoji} ${APP_NAME} — ${name} assets. React 🔥 for fire, 💾 to save.`,
+            topic: `${eShop} ${APP_NAME} — ${name} assets`,
           });
           created.push(name);
         }
@@ -260,7 +254,8 @@ export const scrapeCommand = {
           "Asset Channels Ready",
           (created.length ? `**Created:** ${created.map(c => `#${c}`).join(", ")}\n` : "") +
           (existing.length ? `**Already existed:** ${existing.map(c => `#${c}`).join(", ")}\n` : "") +
-          `\n-# Category: **${category.name}** • ${ASSET_CHANNELS.length} channels`
+          `\n-# Category: **${category.name}** • ${ASSET_CHANNELS.length} channels`,
+          cmd.guild
         )],
       });
       return;
@@ -291,7 +286,7 @@ export const scrapeCommand = {
       // Reply with V2 status + stop button
       activeScrapes.set(key, { stopped: false });
       await cmd.reply({
-        components: [statusContainer(`⏳ Scraping **#${sourceTextCh.name}** from **${sourceGuild.name}**...\nPosting to <#${targetChannel.id}>. This may take a while.`)],
+        components: [statusContainer(`Scraping **#${sourceTextCh.name}** from **${sourceGuild.name}**...\nPosting to <#${targetChannel.id}>. This may take a while.`, cmd.guild)],
         flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
       });
 
@@ -305,7 +300,8 @@ export const scrapeCommand = {
           `**Target:** <#${targetChannel.id}>\n` +
           `**Messages scanned:** ${result.scanned.toLocaleString()}\n` +
           `**Assets posted:** ${result.posted.toLocaleString()}` +
-          (result.stopped ? "\n\n⏹ *Stopped by user*" : "")
+          (result.stopped ? "\n\n*Stopped by user*" : ""),
+          cmd.guild
         )],
       });
       return;
@@ -340,7 +336,7 @@ export const scrapeCommand = {
       // Reply with V2 status + stop button
       activeScrapes.set(key, { stopped: false });
       await cmd.reply({
-        components: [statusContainer(`⏳ Scraping all asset channels from **${sourceGuild.name}**...\nThis may take several minutes.`)],
+        components: [statusContainer(`Scraping all asset channels from **${sourceGuild.name}**...\nThis may take several minutes.`, cmd.guild)],
         flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
       });
 
@@ -372,8 +368,9 @@ export const scrapeCommand = {
 
       activeScrapes.delete(key);
 
+      const eShop = guildEmoji(cmd.guild, EMOJI_NAMES.shop);
       const resultLines = results.length
-        ? results.map(r => `> ${ASSET_EMOJI[r.name] || "📦"} **#${r.name}** — ${r.posted} assets (${r.scanned} scanned)`).join("\n")
+        ? results.map(r => `> ${eShop} **#${r.name}** — ${r.posted} assets (${r.scanned} scanned)`).join("\n")
         : "> No matching channels found.";
 
       await cmd.editReply({
@@ -382,7 +379,8 @@ export const scrapeCommand = {
           `**Source server:** ${sourceGuild.name}\n` +
           `**Total assets posted:** ${grandTotal.toLocaleString()}\n\n` +
           resultLines +
-          (wasStopped ? "\n\n⏹ *Stopped by user*" : "")
+          (wasStopped ? "\n\n*Stopped by user*" : ""),
+          cmd.guild
         )],
       });
       return;
@@ -401,12 +399,12 @@ export const scrapeCommand = {
         return;
       }
 
-      const emoji = ASSET_EMOJI[assetType] || "📦";
+      const eShop = guildEmoji(cmd.guild, EMOJI_NAMES.shop);
 
       // Reply with V2 status + stop button
       activeScrapes.set(key, { stopped: false });
       await cmd.reply({
-        components: [statusContainer(`⏳ Fetching messages from channel \`${sourceChannelId}\` via HTTP API...\nPosting ${emoji} **${assetType}** to <#${targetChannel.id}>.`)],
+        components: [statusContainer(`Fetching messages from channel \`${sourceChannelId}\` via HTTP API...\nPosting ${eShop} **${assetType}** to <#${targetChannel.id}>.`, cmd.guild)],
         flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
       });
 
@@ -434,7 +432,7 @@ export const scrapeCommand = {
           if (!res.ok) {
             const errText = await res.text();
             activeScrapes.delete(key);
-            await cmd.editReply({ components: [errorContainer(`Discord API error (${res.status}): ${errText.slice(0, 200)}`)] });
+            await cmd.editReply({ components: [errorContainer(`Discord API error (${res.status}): ${errText.slice(0, 200)}`, cmd.guild)] });
             return;
           }
 
@@ -480,7 +478,7 @@ export const scrapeCommand = {
       } catch (err: any) {
         console.error("[Scrape Fetch] Error:", err);
         activeScrapes.delete(key);
-        await cmd.editReply({ components: [errorContainer(`Fetch error: ${err.message?.slice(0, 200)}`)] });
+        await cmd.editReply({ components: [errorContainer(`Fetch error: ${err.message?.slice(0, 200)}`, cmd.guild)] });
         return;
       }
 
@@ -493,7 +491,8 @@ export const scrapeCommand = {
           `**Target:** <#${targetChannel.id}>\n` +
           `**Messages scanned:** ${totalScanned.toLocaleString()}\n` +
           `**Assets posted:** ${totalPosted.toLocaleString()}` +
-          (wasStopped ? "\n\n⏹ *Stopped by user*" : "")
+          (wasStopped ? "\n\n*Stopped by user*" : ""),
+          cmd.guild
         )],
       });
       return;

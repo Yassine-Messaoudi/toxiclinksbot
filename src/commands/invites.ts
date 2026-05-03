@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, GuildMember, Interaction, MessageFlags } from "discord.js";
 import { successV2, ephemeralErrorV2 } from "../utils/embeds";
+import { EMOJI_NAMES, guildEmoji } from "../utils/branding";
 
 export const invitesCommand = {
   name: "invites",
@@ -27,10 +28,12 @@ export const invitesCommand = {
         .sort((a, b) => (b.uses || 0) - (a.uses || 0))
         .slice(0, 5);
 
+      const eLeaderboard = guildEmoji(cmd.guild, EMOJI_NAMES.leaderboard);
+      const eWebsite = guildEmoji(cmd.guild, EMOJI_NAMES.website);
       const lines = [
         `**${target.tag}**'s Invite Stats\n`,
-        `> 👥 **Total Invites:** ${totalUses}`,
-        `> 🔗 **Active Links:** ${activeInvites}`,
+        `> ${eLeaderboard} **Total Invites:** ${totalUses}`,
+        `> ${eWebsite} **Active Links:** ${activeInvites}`,
       ];
 
       if (topInvites.length > 0) {
@@ -41,7 +44,7 @@ export const invitesCommand = {
       }
 
       await cmd.reply({
-        components: [successV2(lines.join("\n"))],
+        components: [successV2(lines.join("\n"), cmd.guild)],
         flags: MessageFlags.IsComponentsV2,
       });
     } catch (err) {

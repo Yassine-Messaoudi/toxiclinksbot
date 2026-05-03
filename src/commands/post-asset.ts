@@ -6,17 +6,17 @@ import {
 } from "discord.js";
 import { BOT_COLOR, APP_NAME, BOT_FOOTER } from "../config";
 import { errorEmbed, successEmbed } from "../utils/embeds";
-import { BANNER_GIF, logoEmoji } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
 /** Asset types that map to channel names */
 const ASSET_TYPES = [
-  { name: "Background", value: "backgrounds", emoji: "🖼️" },
-  { name: "PFP", value: "pfps", emoji: "👤" },
-  { name: "Banner", value: "banners", emoji: "🏳️" },
-  { name: "Cursor", value: "cursors", emoji: "🖱️" },
-  { name: "Icon", value: "icons", emoji: "✨" },
-  { name: "Audio", value: "audios", emoji: "🎵" },
-  { name: "Custom Font", value: "custom-fonts", emoji: "🔤" },
+  { name: "Background", value: "backgrounds" },
+  { name: "PFP", value: "pfps" },
+  { name: "Banner", value: "banners" },
+  { name: "Cursor", value: "cursors" },
+  { name: "Icon", value: "icons" },
+  { name: "Audio", value: "audios" },
+  { name: "Custom Font", value: "custom-fonts" },
 ];
 
 export const postAssetCommand = {
@@ -120,7 +120,7 @@ export const postAssetCommand = {
         return;
       }
 
-      await cmd.editReply({ embeds: [successEmbed(`⏳ Posting ${urls.length} assets to <#${targetCh.id}>...`)] });
+      await cmd.editReply({ embeds: [successEmbed(`Posting ${urls.length} assets to <#${targetCh.id}>...`)] });
 
       let posted = 0;
       for (const url of urls) {
@@ -138,7 +138,7 @@ export const postAssetCommand = {
         new TextDisplayBuilder().setContent(
           `# ${logoEmoji(cmd.guild)} Bulk Post Complete\n` +
           `**Channel:** <#${targetCh.id}>\n` +
-          `**Type:** ${assetInfo.emoji} ${assetInfo.name}\n` +
+          `**Type:** ${guildEmoji(cmd.guild, EMOJI_NAMES.shop)} ${assetInfo.name}\n` +
           `**Posted:** ${posted}/${urls.length} assets`
         )
       );

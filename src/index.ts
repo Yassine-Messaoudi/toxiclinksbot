@@ -121,7 +121,7 @@ client.once(Events.ClientReady, async (readyClient) => {
   }
 
   initLogger(client);
-  logText(`🟢 **${APP_NAME} Bot** is online! (${commands.size} commands)`);
+  logText(`**${APP_NAME} Bot** is online! (${commands.size} commands)`);
 
   // ── Sync booster badges on startup ──
   if (GUILD_ID) {
@@ -186,7 +186,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     () => ({ name: "toxiclinks.gg", type: ActivityType.Playing as const }),
     () => ({ name: "/help • /profile", type: ActivityType.Listening as const }),
     () => ({ name: `${readyClient.guilds.cache.size} servers`, type: ActivityType.Watching as const }),
-    () => ({ name: "your profiles 👀", type: ActivityType.Watching as const }),
+    () => ({ name: "your profiles", type: ActivityType.Watching as const }),
   ];
   let idx = 0;
   const rotate = () => {
@@ -208,7 +208,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await command.execute(interaction);
     } catch (error) {
       console.error(`[Bot] Error executing /${interaction.commandName}:`, error);
-      const reply = { content: "❌ There was an error executing this command.", ephemeral: true };
+      const reply = { content: "There was an error executing this command.", ephemeral: true };
       if (interaction.replied || interaction.deferred) await interaction.followUp(reply).catch(() => {});
       else await interaction.reply(reply).catch(() => {});
     }
@@ -222,7 +222,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     } catch (error) {
       console.error(`[Bot] Error handling button ${interaction.customId}:`, error);
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: "❌ Something went wrong.", ephemeral: true }).catch(() => {});
+        await interaction.reply({ content: "Something went wrong.", ephemeral: true }).catch(() => {});
       }
     }
     return;
@@ -277,7 +277,7 @@ client.login(token).catch((err) => { console.error("[Bot] Failed to login:", err
 // ── Graceful shutdown ──
 const shutdown = async () => {
   console.log("[Bot] Shutting down...");
-  await logText("🔴 Bot is shutting down...");
+  await logText("Bot is shutting down...");
   await prisma.$disconnect();
   redis?.disconnect();
   client.destroy();

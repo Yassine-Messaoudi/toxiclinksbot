@@ -22,7 +22,7 @@ export const helpCommand = {
     const eNote = guildEmoji(guild, EMOJI_NAMES.note);
     const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
     const eVerified = guildEmoji(guild, EMOJI_NAMES.verified);
-    const eDash = guildEmoji(guild, EMOJI_NAMES.dashboard);
+    const eDash = guildEmoji(guild, EMOJI_NAMES.ldboard);
 
     /** Command categories with emoji + commands */
     const CATEGORIES = [

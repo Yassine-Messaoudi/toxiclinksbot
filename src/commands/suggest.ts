@@ -50,8 +50,10 @@ export const suggestCommand = {
     );
 
     const msg = await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
-    await msg.react("👍");
-    await msg.react("👎");
+    const verifiedE = guild?.emojis.cache.find(em => em.name === EMOJI_NAMES.verified);
+    const needhelpE = guild?.emojis.cache.find(em => em.name === EMOJI_NAMES.needhelp);
+    if (verifiedE) await msg.react(verifiedE);
+    if (needhelpE) await msg.react(needhelpE);
 
     await cmd.reply(ephemeralSuccessV2(`Your suggestion has been posted in <#${channelId}>!`));
   },

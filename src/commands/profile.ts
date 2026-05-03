@@ -50,7 +50,8 @@ export const profileCommand = {
     const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
     const eLeaderboard = guildEmoji(guild, EMOJI_NAMES.leaderboard);
     const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
-    const planEmoji = dbUser.plan === "PREMIUM" ? "👑" : dbUser.plan === "VERIFIED" ? guildEmoji(guild, EMOJI_NAMES.verified) : eWebsite;
+    const eVerified = guildEmoji(guild, EMOJI_NAMES.verified);
+    const planEmoji = dbUser.plan === "PREMIUM" ? eVerified : dbUser.plan === "VERIFIED" ? eVerified : eWebsite;
     const badgeText = dbUser.badges.map((b) => `\`${b.type}\``).join(" ") || "None";
     const avatarUrl = dbUser.avatarUrl || dbUser.image || targetUser.displayAvatarURL({ size: 512 });
 

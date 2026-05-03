@@ -24,11 +24,11 @@ export const websiteCommand = {
     const guild = cmd.guild!;
 
     // Resolve custom emojis from guild cache
-    const eWebsite = guildEmoji(guild, EMOJI_NAMES.website, "🌐");
-    const eDashboard = guildEmoji(guild, EMOJI_NAMES.dashboard, "📊");
-    const eShop = guildEmoji(guild, EMOJI_NAMES.shop, "🛒");
-    const eSupport = guildEmoji(guild, EMOJI_NAMES.support, "🎫");
-    const eVerified = guildEmoji(guild, EMOJI_NAMES.verifiedBadge, "✅");
+    const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
+    const eLdboard = guildEmoji(guild, EMOJI_NAMES.ldboard);
+    const eShop = guildEmoji(guild, EMOJI_NAMES.shop);
+    const eNeedHelp = guildEmoji(guild, EMOJI_NAMES.needhelp);
+    const eVerified = guildEmoji(guild, EMOJI_NAMES.verified);
 
     // Build the website panel container
     const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
@@ -56,9 +56,9 @@ export const websiteCommand = {
       new TextDisplayBuilder().setContent(
         `### ${eWebsite} What is ${APP_NAME}?\n` +
         `> ${eVerified} **Custom Bio Pages** — Your own link-in-bio with themes & effects\n` +
-        `> ${eDashboard} **Dashboard** — Manage links, analytics, badges & more\n` +
+        `> ${eLdboard} **Dashboard** — Manage links, analytics, badges & more\n` +
         `> ${eShop} **Shop** — Premium themes, fonts, cursors & backgrounds\n` +
-        `> ${eSupport} **Discord Integration** — Live presence, auto-sync & role badges`
+        `> ${eNeedHelp} **Discord Integration** — Live presence, auto-sync & role badges`
       )
     );
 
@@ -83,7 +83,7 @@ export const websiteCommand = {
     const dashSection = new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `### ${eDashboard} Dashboard\n-# Manage your links, themes, badges & analytics.`
+          `### ${eLdboard} Dashboard\n-# Manage your links, themes, badges & analytics.`
         )
       )
       .setButtonAccessory(

@@ -34,19 +34,19 @@ export const panelsCommand = {
 async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
   const ch = cmd.channel as TextChannel;
   const guild = cmd.guild;
-  const eNote = guildEmoji(guild, EMOJI_NAMES.note, "📜");
-  const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp, "🎫");
+  const eNote = guildEmoji(guild, EMOJI_NAMES.note);
+  const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp);
   const eSupportObj = guildEmojiObj(guild!, EMOJI_NAMES.needhelp);
 
   const rules = [
-    { emoji: "1️⃣", title: "Be Respectful", desc: "No harassment, hate speech, discrimination, or personal attacks. Keep it civil." },
-    { emoji: "2️⃣", title: "No NSFW Content", desc: "No explicit, graphic, or NSFW content outside designated channels." },
-    { emoji: "3️⃣", title: "No Spam or Self-Promo", desc: "No spam, excessive caps, repeated messages, or unauthorized self-promotion." },
-    { emoji: "4️⃣", title: "No Doxxing or Leaking", desc: "Never share personal information of others. Zero tolerance." },
-    { emoji: "5️⃣", title: "Follow Discord TOS", desc: "All Discord Terms of Service and Community Guidelines apply here." },
-    { emoji: "6️⃣", title: "Use Channels Properly", desc: "Post content in the correct channels. Keep discussions on-topic." },
-    { emoji: "7️⃣", title: "Listen to Staff", desc: "Staff decisions are final. If you have an issue, open a ticket." },
-    { emoji: "8️⃣", title: "No Alt Accounts to Evade", desc: "Using alt accounts to bypass bans or mutes will result in a permanent ban." },
+    { title: "Be Respectful", desc: "No harassment, hate speech, discrimination, or personal attacks. Keep it civil." },
+    { title: "No NSFW Content", desc: "No explicit, graphic, or NSFW content outside designated channels." },
+    { title: "No Spam or Self-Promo", desc: "No spam, excessive caps, repeated messages, or unauthorized self-promotion." },
+    { title: "No Doxxing or Leaking", desc: "Never share personal information of others. Zero tolerance." },
+    { title: "Follow Discord TOS", desc: "All Discord Terms of Service and Community Guidelines apply here." },
+    { title: "Use Channels Properly", desc: "Post content in the correct channels. Keep discussions on-topic." },
+    { title: "Listen to Staff", desc: "Staff decisions are final. If you have an issue, open a ticket." },
+    { title: "No Alt Accounts to Evade", desc: "Using alt accounts to bypass bans or mutes will result in a permanent ban." },
   ];
 
   const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
@@ -68,8 +68,8 @@ async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
   container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
   // Rules list
-  const rulesText = rules.map(r =>
-    `> ${r.emoji} **${r.title}**\n> -# ${r.desc}`
+  const rulesText = rules.map((r, i) =>
+    `> ${eNote} **${i + 1}. ${r.title}**\n> -# ${r.desc}`
   ).join("\n\n");
 
   container.addTextDisplayComponents(
@@ -81,7 +81,7 @@ async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
   // Consequences
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `### ⚠️ Consequences\n> **1st offense** — Warning\n> **2nd offense** — Mute (1h–24h)\n> **3rd offense** — Kick or Ban\n> -# Severe violations may result in an immediate ban.`
+      `### ${guildEmoji(guild, EMOJI_NAMES.needhelp)} Consequences\n> **1st offense** — Warning\n> **2nd offense** — Mute (1h–24h)\n> **3rd offense** — Kick or Ban\n> -# Severe violations may result in an immediate ban.`
     )
   );
 
@@ -98,7 +98,7 @@ async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
       new ButtonBuilder()
         .setCustomId("rules_ticket")
         .setLabel("Open Ticket")
-        .setEmoji(eSupportObj || "🎫")
+        .setEmoji(eSupportObj || { id: "0", name: "needhelp" })
         .setStyle(ButtonStyle.Success)
     );
   container.addSectionComponents(supportSection);
@@ -124,8 +124,8 @@ async function sendRulesPanel(cmd: ChatInputCommandInteraction) {
 async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
   const ch = cmd.channel as TextChannel;
   const guild = cmd.guild;
-  const eShop = guildEmoji(guild, EMOJI_NAMES.shop, "🛒");
-  const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg, "⚡");
+  const eShop = guildEmoji(guild, EMOJI_NAMES.shop);
+  const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
 
   const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 
@@ -148,7 +148,7 @@ async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
   // Free tier
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `### ${logoEmoji(guild)} Free — $0 forever\n` +
+      `### ${eLogo} Free — $0 forever\n` +
       `> Aesthetic profile page\n` +
       `> 5 custom links\n` +
       `> 3 free alt themes\n` +
@@ -162,7 +162,7 @@ async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
   // Premium tier
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `### 👑 Premium — $4.99/mo\n` +
+      `### ${guildEmoji(guild, EMOJI_NAMES.verified)} Premium — $4.99/mo\n` +
       `> Unlimited links\n` +
       `> All aesthetic & goth themes\n` +
       `> Premium status badge\n` +
@@ -179,7 +179,7 @@ async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
   // Elite tier
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `### 💀 Toxic Elite — $9.99/mo\n` +
+      `### ${logoEmoji(guild)} Toxic Elite — $9.99/mo\n` +
       `> Everything in Premium\n` +
       `> Exclusive toxic luxury themes\n` +
       `> Elite badge + custom status symbol\n` +
@@ -230,8 +230,8 @@ async function sendPricingPanel(cmd: ChatInputCommandInteraction) {
 async function sendChatPanel(cmd: ChatInputCommandInteraction) {
   const ch = cmd.channel as TextChannel;
   const guild = cmd.guild;
-  const eWebsite = guildEmoji(guild, EMOJI_NAMES.website, "🌐");
-  const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg, "⚡");
+  const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
+  const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
 
   const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
 

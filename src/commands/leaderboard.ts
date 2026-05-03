@@ -29,14 +29,15 @@ export const leaderboardCommand = {
       return;
     }
 
-    const eLb = guildEmoji(cmd.guild, EMOJI_NAMES.leaderboard, "🏆");
-    const medals = ["🥇", "🥈", "🥉"];
+    const eLb = guildEmoji(cmd.guild, EMOJI_NAMES.leaderboard);
+    const eLogo = guildEmoji(cmd.guild, EMOJI_NAMES.logoNoBg);
+    const eVerified = guildEmoji(cmd.guild, EMOJI_NAMES.verified);
     const list = users
       .map((u, i) => {
-        const medal = medals[i] || `**${i + 1}.**`;
+        const rank = `**${i + 1}.**`;
         const views = u.profile?.totalViews || 0;
-        const badge = u.plan === "PREMIUM" ? " 👑" : u.plan === "VERIFIED" ? " ✅" : "";
-        return `${medal} **${u.displayName || u.username}**${badge} — ${views.toLocaleString()} views`;
+        const badge = u.plan === "PREMIUM" ? ` ${eVerified}` : u.plan === "VERIFIED" ? ` ${eVerified}` : "";
+        return `${eLogo} ${rank} **${u.displayName || u.username}**${badge} — ${views.toLocaleString()} views`;
       })
       .join("\n");
 

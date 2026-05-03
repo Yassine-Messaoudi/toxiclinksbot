@@ -57,7 +57,7 @@ export const announceCommand = {
     // Footer with author
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# ${guildEmoji(cmd.guild, EMOJI_NAMES.logoNoBg, "⚡")} Announced by **${cmd.user.displayName}** • ${BOT_FOOTER}`
+        `-# ${guildEmoji(cmd.guild, EMOJI_NAMES.logoNoBg)} Announced by **${cmd.user.displayName}** • ${BOT_FOOTER}`
       )
     );
 

@@ -3,7 +3,7 @@
  * Import these everywhere to keep banner + logo consistent.
  *
  * ALL emoji resolution goes through the guild cache — no hardcoded IDs.
- * If the emoji isn't found on the server, a Unicode fallback is used.
+ * Only custom server emojis are used; no Unicode/random emojis.
  */
 import { Guild } from "discord.js";
 
@@ -13,68 +13,37 @@ export const BANNER_GIF = "https://res.cloudinary.com/db4mpxc2k/image/upload/v17
 /** All custom emoji names used across the bot — must match server emoji names exactly */
 export const EMOJI_NAMES = {
   logo: "toxiclinks",
-  dashboard: "dashboard",
-  needhelp: "needhelp",
-  note: "note",
-  shop: "shop",
-  support: "Support",
-  verified: "Verifiedbadgeapplication",
-  verifiedBadge: "verifiedbadge",
-  website: "web",
   logoNoBg: "Logowithoutbackground",
-  store: "store",
-  billing: "purshacebilling",
-  accountRecovery: "accountrecovery",
+  billing: "billing",
+  needhelp: "needhelp",
+  website: "web",
   leaderboard: "leadboard",
+  note: "note",
+  verified: "Verifiedbadgeapplication",
   ldboard: "ldboard",
   help: "help",
   reset: "reset",
+  shop: "shop",
+  warn: "warn",
+  verif: "verif",
+  x: "X_",
 };
 
-/** Unicode fallbacks when custom emoji can't be resolved */
-export const UNICODE_FALLBACKS: Record<string, string> = {
-  [EMOJI_NAMES.logo]: "☠️",
-  [EMOJI_NAMES.logoNoBg]: "⚡",
-  [EMOJI_NAMES.needhelp]: "❓",
-  [EMOJI_NAMES.note]: "📜",
-  [EMOJI_NAMES.shop]: "🛒",
-  [EMOJI_NAMES.support]: "🎫",
-  [EMOJI_NAMES.verified]: "✅",
-  [EMOJI_NAMES.website]: "🌐",
-  [EMOJI_NAMES.store]: "🏪",
-  [EMOJI_NAMES.billing]: "💳",
-  [EMOJI_NAMES.accountRecovery]: "🔑",
-  [EMOJI_NAMES.leaderboard]: "🏆",
-  [EMOJI_NAMES.ldboard]: "📊",
-  [EMOJI_NAMES.help]: "📖",
-  [EMOJI_NAMES.reset]: "🔄",
-  [EMOJI_NAMES.dashboard]: "📋",
-  [EMOJI_NAMES.verifiedBadge]: "✅",
-};
-
-/** Resolve a server emoji by name → `<:name:id>` string, or Unicode fallback */
-export function guildEmoji(guild: Guild | null | undefined, name: string, fallback?: string): string {
-  const fb = fallback ?? UNICODE_FALLBACKS[name] ?? "";
-  if (!guild) return fb;
+/** Resolve a server emoji by name → `<:name:id>` string, or empty string if not found */
+export function guildEmoji(guild: Guild | null | undefined, name: string): string {
+  if (!guild) return "";
   const e = guild.emojis.cache.find(em => em.name === name);
-  return e ? `<:${e.name}:${e.id}>` : fb;
+  return e ? `<:${e.name}:${e.id}>` : "";
 }
 
-/** Resolve emoji object for button `.setEmoji()` → `{ id, name }` or Unicode string */
-export function guildEmojiObj(guild: Guild | null | undefined, name: string): { id: string; name: string } | string {
-  const fb = UNICODE_FALLBACKS[name] ?? "⚡";
-  if (!guild) return fb;
+/** Resolve emoji object for button `.setEmoji()` → `{ id, name }` or undefined */
+export function guildEmojiObj(guild: Guild | null | undefined, name: string): { id: string; name: string } | undefined {
+  if (!guild) return undefined;
   const e = guild.emojis.cache.find(em => em.name === name);
-  return e ? { id: e.id, name: e.name! } : fb;
+  return e ? { id: e.id, name: e.name! } : undefined;
 }
 
 /** Resolve the ToxicLinks logo emoji for use in text — pass the guild */
 export function logoEmoji(guild: Guild | null | undefined): string {
-  return guildEmoji(guild, EMOJI_NAMES.logo, "☠️");
+  return guildEmoji(guild, EMOJI_NAMES.logo);
 }
-
-/**
- * @deprecated Use `logoEmoji(guild)` instead. Kept for static contexts only.
- * This may show a broken emoji if the hardcoded ID is stale.
- */
-export const LOGO = "☠️";

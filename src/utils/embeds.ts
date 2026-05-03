@@ -1,10 +1,10 @@
 import {
-  EmbedBuilder, User,
+  EmbedBuilder, User, Guild,
   ContainerBuilder, TextDisplayBuilder, SeparatorBuilder,
   MediaGalleryBuilder, MediaGalleryItemBuilder, MessageFlags,
 } from "discord.js";
 import { BOT_COLOR, ERROR_COLOR, WARN_COLOR, SUCCESS_COLOR, INFO_COLOR, BOT_FOOTER, APP_NAME, LOGO_URL, SKULL_GIF_URL, LINE_SHORT } from "../config";
-import { BANNER_GIF, LOGO } from "./branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "./branding";
 
 /** Branded embed with toxic green accent + logo + skull */
 export function toxicEmbed() {
@@ -16,7 +16,7 @@ export function toxicEmbed() {
     .setTimestamp();
 }
 
-/** Error embed */
+/** Error embed — ANSI symbols are plain text inside code blocks, not Discord emojis */
 export function errorEmbed(message: string) {
   return new EmbedBuilder()
     .setColor(ERROR_COLOR)
@@ -63,7 +63,7 @@ export function infoEmbed(title: string, description: string) {
   return new EmbedBuilder()
     .setColor(INFO_COLOR)
     .setAuthor({ name: `${APP_NAME} — Info`, iconURL: LOGO_URL })
-    .setTitle(`☠️  ${title}`)
+    .setTitle(title)
     .setDescription([
       `*${LINE_SHORT}*`,
       "",
@@ -102,7 +102,7 @@ export function modLogEmbed(opts: {
   const embed = new EmbedBuilder()
     .setColor(color)
     .setAuthor({ name: `${APP_NAME} — Moderation`, iconURL: LOGO_URL })
-    .setTitle(`${actionEmoji(opts.action)}  ${opts.action}`)
+    .setTitle(opts.action)
     .setDescription([
       "```ansi",
       `\u001b[0;${ansiColor}m╔══════════════════════════════╗`,
@@ -123,20 +123,22 @@ export function modLogEmbed(opts: {
   return embed;
 }
 
-function actionEmoji(action: string): string {
+/** Resolve action emoji from guild custom emojis */
+function actionEmojiStr(guild: Guild | null | undefined, action: string): string {
   const map: Record<string, string> = {
-    BAN: "🔨",
-    KICK: "👢",
-    MUTE: "🔇",
-    UNMUTE: "🔊",
-    WARN: "⚠️",
-    UNBAN: "✅",
-    PURGE: "🗑️",
-    TIMEOUT: "⏰",
-    CLEAR: "🧹",
-    "CLEAR ALL": "🧹",
+    BAN: EMOJI_NAMES.x,
+    KICK: EMOJI_NAMES.x,
+    MUTE: EMOJI_NAMES.warn,
+    UNMUTE: EMOJI_NAMES.verif,
+    WARN: EMOJI_NAMES.warn,
+    UNBAN: EMOJI_NAMES.verif,
+    PURGE: EMOJI_NAMES.reset,
+    TIMEOUT: EMOJI_NAMES.warn,
+    CLEAR: EMOJI_NAMES.reset,
+    "CLEAR ALL": EMOJI_NAMES.reset,
   };
-  return map[action] || "📋";
+  const emojiName = map[action] || EMOJI_NAMES.note;
+  return guildEmoji(guild, emojiName);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -144,22 +146,26 @@ function actionEmoji(action: string): string {
  * ═══════════════════════════════════════════════════════════ */
 
 /** V2 error container */
-export function errorV2(message: string): ContainerBuilder {
+export function errorV2(message: string, guild?: Guild | null): ContainerBuilder {
   const c = new ContainerBuilder().setAccentColor(ERROR_COLOR);
+  const eX = guildEmoji(guild, EMOJI_NAMES.x);
+  const logo = logoEmoji(guild);
   c.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `### ✖ Error\n${message}\n-# ${LOGO} ${BOT_FOOTER}`
+      `### ${eX} Error\n${message}\n-# ${logo} ${BOT_FOOTER}`
     )
   );
   return c;
 }
 
 /** V2 success container */
-export function successV2(message: string): ContainerBuilder {
+export function successV2(message: string, guild?: Guild | null): ContainerBuilder {
   const c = new ContainerBuilder().setAccentColor(SUCCESS_COLOR);
+  const eVerif = guildEmoji(guild, EMOJI_NAMES.verif);
+  const logo = logoEmoji(guild);
   c.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `### ✔ Success\n${message}\n-# ${LOGO} ${BOT_FOOTER}`
+      `### ${eVerif} Success\n${message}\n-# ${logo} ${BOT_FOOTER}`
     )
   );
   return c;
@@ -173,8 +179,10 @@ export function modLogV2(opts: {
   reason?: string;
   duration?: string;
   extra?: string;
+  guild?: Guild | null;
 }): ContainerBuilder {
-  const emoji = actionEmoji(opts.action);
+  const emoji = actionEmojiStr(opts.guild, opts.action);
+  const logo = logoEmoji(opts.guild);
   const color =
     (opts.action === "BAN" || opts.action === "KICK") ? ERROR_COLOR :
     (opts.action === "MUTE" || opts.action === "WARN") ? WARN_COLOR :
@@ -197,7 +205,7 @@ export function modLogV2(opts: {
   if (opts.reason) lines.push(`> **Reason:** ${opts.reason}`);
   if (opts.duration) lines.push(`> **Duration:** ${opts.duration}`);
   if (opts.extra) lines.push(`> **Details:** ${opts.extra}`);
-  lines.push(`\n-# ${LOGO} ${new Date().toLocaleString()} • ${BOT_FOOTER}`);
+  lines.push(`\n-# ${logo} ${new Date().toLocaleString()} • ${BOT_FOOTER}`);
 
   c.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join("\n")));
 
@@ -205,8 +213,9 @@ export function modLogV2(opts: {
 }
 
 /** V2 info container with banner */
-export function infoV2(title: string, body: string): ContainerBuilder {
+export function infoV2(title: string, body: string, guild?: Guild | null): ContainerBuilder {
   const c = new ContainerBuilder().setAccentColor(BOT_COLOR);
+  const logo = logoEmoji(guild);
 
   c.addMediaGalleryComponents(
     new MediaGalleryBuilder().addItems(
@@ -215,23 +224,23 @@ export function infoV2(title: string, body: string): ContainerBuilder {
   );
 
   c.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`# ${LOGO} ${title}\n${body}`)
+    new TextDisplayBuilder().setContent(`# ${logo} ${title}\n${body}`)
   );
 
   c.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
   c.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`-# ${LOGO} ${BOT_FOOTER}`)
+    new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`)
   );
 
   return c;
 }
 
 /** Shorthand: V2 reply options for ephemeral error */
-export function ephemeralErrorV2(message: string) {
-  return { components: [errorV2(message)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral };
+export function ephemeralErrorV2(message: string, guild?: Guild | null) {
+  return { components: [errorV2(message, guild)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral };
 }
 
 /** Shorthand: V2 reply options for ephemeral success */
-export function ephemeralSuccessV2(message: string) {
-  return { components: [successV2(message)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral };
+export function ephemeralSuccessV2(message: string, guild?: Guild | null) {
+  return { components: [successV2(message, guild)], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral };
 }

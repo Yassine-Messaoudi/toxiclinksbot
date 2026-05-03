@@ -34,16 +34,17 @@ export async function handleGuildMemberRemove(
 
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `# ${guildEmoji(member.guild, EMOJI_NAMES.logoNoBg, "💀")} Goodbye, ${displayName}\n**${tag}** has left the server.`
+      `# ${guildEmoji(member.guild, EMOJI_NAMES.logoNoBg)} Goodbye, ${displayName}\n**${tag}** has left the server.`
     )
   );
 
   container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
+  const eLogo = guildEmoji(member.guild, EMOJI_NAMES.logoNoBg);
   const statsLines = [
-    `-# � Members remaining: **${remaining.toLocaleString()}**`,
+    `-# ${eLogo} Members remaining: **${remaining.toLocaleString()}**`,
   ];
-  if (stayDays !== null) statsLines.push(`-# ⏱️ Stayed for: **${stayDays}** days`);
+  if (stayDays !== null) statsLines.push(`-# ${eLogo} Stayed for: **${stayDays}** days`);
 
   const statsSection = new SectionBuilder()
     .addTextDisplayComponents(
@@ -64,5 +65,5 @@ export async function handleGuildMemberRemove(
     await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
   } catch {}
 
-  await logText(`💀 **${tag}** left the server (${remaining} members)`);
+  await logText(`**${tag}** left the server (${remaining} members)`);
 }

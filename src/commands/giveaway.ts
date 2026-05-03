@@ -90,11 +90,11 @@ export const giveawayCommand = {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId("giveaway_enter")
-        .setLabel("🎉 Enter Giveaway")
+        .setLabel("Enter Giveaway")
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId("giveaway_entries")
-        .setLabel("👥 Entries")
+        .setLabel("Entries")
         .setStyle(ButtonStyle.Secondary),
     );
     container.addActionRowComponents(row);
@@ -131,7 +131,7 @@ export const giveawayCommand = {
 
       const winnerMentions = winnerIds.length > 0
         ? winnerIds.map(id => `<@${id}>`).join(", ")
-        : "No valid entries 😔";
+        : "No valid entries";
 
       const endContainer = new ContainerBuilder().setAccentColor(WARN_COLOR);
       endContainer.addMediaGalleryComponents(
@@ -156,7 +156,7 @@ export const giveawayCommand = {
       try {
         await msg.edit({ components: [endContainer], flags: MessageFlags.IsComponentsV2 });
         if (winnerIds.length > 0) {
-          await channel.send(`🎉 Congratulations ${winnerMentions}! You won **${giveaway.prize}**!`);
+          await channel.send(`${logo} Congratulations ${winnerMentions}! You won **${giveaway.prize}**!`);
         }
       } catch {}
 

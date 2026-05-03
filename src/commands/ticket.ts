@@ -26,25 +26,25 @@ export const CATEGORY_IMAGES: Record<string, string> = {
 
 /** Map ticket category → emoji name in guild cache */
 const TICKET_EMOJI_MAP: Record<string, string> = {
-  support: EMOJI_NAMES.support,
+  support: EMOJI_NAMES.needhelp,
   report: EMOJI_NAMES.needhelp,
-  account: EMOJI_NAMES.accountRecovery,
+  account: EMOJI_NAMES.reset,
   verified: EMOJI_NAMES.verified,
   billing: EMOJI_NAMES.billing,
 };
 
-/** Resolve ticket category emoji from guild cache → object for buttons or Unicode string */
-function resolveTicketEmoji(guild: any, key: string): { id: string; name: string } | string {
+/** Resolve ticket category emoji from guild cache → object for buttons, or undefined */
+function resolveTicketEmoji(guild: any, key: string): { id: string; name: string } | undefined {
   const emojiName = TICKET_EMOJI_MAP[key];
   if (emojiName && guild) return guildEmojiObj(guild, emojiName);
-  return "🎫";
+  return undefined;
 }
 
 /** Resolve ticket emoji as text string for embed content */
 function resolveTicketEmojiStr(guild: any, key: string): string {
   const emojiName = TICKET_EMOJI_MAP[key];
   if (emojiName && guild) return guildEmoji(guild, emojiName);
-  return "🎫";
+  return "";
 }
 
 /** Ticket categories */
@@ -107,8 +107,8 @@ export const ticketCommand = {
         const btn = new ButtonBuilder()
           .setCustomId(`ticket_cat_${cat.value}`)
           .setLabel(cat.label)
-          .setEmoji(emojiObj)
           .setStyle(ButtonStyle.Success);
+        if (emojiObj) btn.setEmoji(emojiObj);
         const section = new SectionBuilder()
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
@@ -229,22 +229,22 @@ export async function createTicket(guild: any, userId: string, username: string,
     new SeparatorBuilder().setDivider(true)
   );
 
-  const eSupport = guildEmojiObj(guild, EMOJI_NAMES.support);
+  const eNeedHelp = guildEmojiObj(guild, EMOJI_NAMES.needhelp);
 
   // Close / Claim buttons in a section
+  const closeBtnBuilder = new ButtonBuilder()
+    .setCustomId("ticket_close")
+    .setLabel("Close Ticket")
+    .setStyle(ButtonStyle.Danger);
+  if (eNeedHelp) closeBtnBuilder.setEmoji(eNeedHelp);
+
   const closeSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         `-# ${guildEmoji(guild, EMOJI_NAMES.needhelp)} Click **Close Ticket** when your issue is resolved.`
       )
     )
-    .setButtonAccessory(
-      new ButtonBuilder()
-        .setCustomId("ticket_close")
-        .setLabel("Close Ticket")
-        .setEmoji(eSupport)
-        .setStyle(ButtonStyle.Danger)
-    );
+    .setButtonAccessory(closeBtnBuilder);
 
   ticketContainer.addSectionComponents(closeSection);
 
@@ -254,13 +254,15 @@ export async function createTicket(guild: any, userId: string, username: string,
         `-# ${guildEmoji(guild, EMOJI_NAMES.verified)} Staff can **Claim** this ticket.`
       )
     )
-    .setButtonAccessory(
-      new ButtonBuilder()
+    .setButtonAccessory((() => {
+      const claimBtn = new ButtonBuilder()
         .setCustomId("ticket_claim")
         .setLabel("Claim Ticket")
-        .setEmoji(guildEmojiObj(guild, EMOJI_NAMES.verified))
-        .setStyle(ButtonStyle.Primary)
-    );
+        .setStyle(ButtonStyle.Primary);
+      const eVer = guildEmojiObj(guild, EMOJI_NAMES.verified);
+      if (eVer) claimBtn.setEmoji(eVer);
+      return claimBtn;
+    })());
 
   ticketContainer.addSectionComponents(claimSection);
 
