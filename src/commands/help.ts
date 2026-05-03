@@ -6,53 +6,6 @@ import {
 import { BOT_COLOR, APP_NAME, APP_URL, BOT_FOOTER } from "../config";
 import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
 
-/** Command categories */
-const CATEGORIES = [
-  {
-    title: "Profile",
-    commands: [
-      { cmd: "/profile [user]", desc: "View a profile card" },
-      { cmd: "/setbio <text>", desc: "Update your bio" },
-      { cmd: "/lookup <username>", desc: "Search a profile" },
-    ],
-  },
-  {
-    title: "Stats & Info",
-    commands: [
-      { cmd: "/analytics", desc: "Profile analytics" },
-      { cmd: "/leaderboard", desc: "Top profiles" },
-      { cmd: "/serverinfo", desc: "Server stats" },
-      { cmd: "/userinfo [user]", desc: "User info" },
-    ],
-  },
-  {
-    title: "Community",
-    commands: [
-      { cmd: "/suggest <idea>", desc: "Submit idea" },
-      { cmd: "/poll <question>", desc: "Create a poll" },
-      { cmd: "/ticket", desc: "Open support ticket" },
-    ],
-  },
-  {
-    title: "Moderation",
-    commands: [
-      { cmd: "/warn <user>", desc: "Warn a user" },
-      { cmd: "/mute <user> <dur>", desc: "Timeout" },
-      { cmd: "/kick <user>", desc: "Kick a user" },
-      { cmd: "/ban <user>", desc: "Ban a user" },
-      { cmd: "/purge <amount>", desc: "Bulk delete" },
-    ],
-  },
-  {
-    title: "Staff",
-    commands: [
-      { cmd: "/announce <msg>", desc: "Announcement" },
-      { cmd: "/giveaway <prize>", desc: "Start giveaway" },
-      { cmd: "/embed", desc: "Custom embed builder" },
-    ],
-  },
-];
-
 export const helpCommand = {
   name: "help",
   async execute(interaction: Interaction) {
@@ -60,13 +13,98 @@ export const helpCommand = {
     const cmd = interaction as ChatInputCommandInteraction;
 
     const guild = cmd.guild;
-    const eHelp = guildEmoji(guild, EMOJI_NAMES.help, "📖");
-    const eLeaderboard = guildEmoji(guild, EMOJI_NAMES.leaderboard, "🏆");
-    const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp, "🎫");
-    const eWebsite = guildEmoji(guild, EMOJI_NAMES.website, "🌐");
-    const eShop = guildEmoji(guild, EMOJI_NAMES.shop, "🛒");
-    const eNote = guildEmoji(guild, EMOJI_NAMES.note, "📜");
-    const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg, "⚡");
+    const logo = logoEmoji(guild);
+    const eHelp = guildEmoji(guild, EMOJI_NAMES.help);
+    const eLeaderboard = guildEmoji(guild, EMOJI_NAMES.leaderboard);
+    const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp);
+    const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
+    const eShop = guildEmoji(guild, EMOJI_NAMES.shop);
+    const eNote = guildEmoji(guild, EMOJI_NAMES.note);
+    const eLogo = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
+    const eVerified = guildEmoji(guild, EMOJI_NAMES.verified);
+    const eDash = guildEmoji(guild, EMOJI_NAMES.dashboard);
+
+    /** Command categories with emoji + commands */
+    const CATEGORIES = [
+      {
+        emoji: eLogo,
+        title: "Profile",
+        commands: [
+          { cmd: "/profile [user]", desc: "View a profile card" },
+          { cmd: "/setbio <text>", desc: "Update your bio" },
+          { cmd: "/lookup <username>", desc: "Search a profile" },
+          { cmd: "/analytics", desc: "View your profile analytics" },
+        ],
+      },
+      {
+        emoji: eLeaderboard,
+        title: "Stats & Info",
+        commands: [
+          { cmd: "/leaderboard", desc: "Top profiles by views" },
+          { cmd: "/serverinfo", desc: "Server statistics" },
+          { cmd: "/userinfo [user]", desc: "User information" },
+          { cmd: "/invites [user]", desc: "Check invite stats" },
+        ],
+      },
+      {
+        emoji: eSupport,
+        title: "Community",
+        commands: [
+          { cmd: "/suggest <idea>", desc: "Submit a suggestion" },
+          { cmd: "/poll <question>", desc: "Create a poll (up to 5 options)" },
+          { cmd: "/ticket panel", desc: "Send the ticket panel" },
+          { cmd: "/ticket close", desc: "Close the current ticket" },
+        ],
+      },
+      {
+        emoji: eNote,
+        title: "Moderation",
+        commands: [
+          { cmd: "/warn <user>", desc: "Warn a user" },
+          { cmd: "/mute <user> <dur>", desc: "Timeout a user" },
+          { cmd: "/kick <user>", desc: "Kick a user" },
+          { cmd: "/ban <user>", desc: "Ban a user" },
+          { cmd: "/purge <amount>", desc: "Bulk delete messages (1-100)" },
+          { cmd: "/clear [amount]", desc: "Clear messages or entire channel" },
+        ],
+      },
+      {
+        emoji: eWebsite,
+        title: "Staff",
+        commands: [
+          { cmd: "/announce <title> <msg>", desc: "Post an announcement" },
+          { cmd: "/giveaway <prize> <dur>", desc: "Start a giveaway" },
+          { cmd: "/embed <title> <desc>", desc: "Custom embed builder" },
+          { cmd: "/website", desc: "Post the website info panel" },
+          { cmd: "/panel rules", desc: "Post the rules panel" },
+          { cmd: "/panel pricing", desc: "Post the pricing panel" },
+          { cmd: "/panel chat", desc: "Post the chat welcome panel" },
+        ],
+      },
+      {
+        emoji: eShop,
+        title: "Assets",
+        commands: [
+          { cmd: "/post-asset single", desc: "Post a single asset by URL" },
+          { cmd: "/post-asset bulk", desc: "Post multiple assets by URLs" },
+          { cmd: "/post-asset upload", desc: "Upload a file as an asset" },
+          { cmd: "/scrape setup", desc: "Create asset category + channels" },
+          { cmd: "/scrape channel", desc: "Scrape a single channel" },
+          { cmd: "/scrape all", desc: "Scrape all matching channels" },
+          { cmd: "/scrape fetch", desc: "Scrape via HTTP API" },
+        ],
+      },
+      {
+        emoji: eVerified,
+        title: "Admin",
+        commands: [
+          { cmd: "/setrole <user> <role>", desc: "Change a user's website role" },
+          { cmd: "/resetacc <user>", desc: "Reset a user's profile to defaults" },
+        ],
+      },
+    ];
+
+    const totalCmds = CATEGORIES.reduce((a, c) => a + c.commands.length, 0);
 
     const container = new ContainerBuilder()
       .setAccentColor(BOT_COLOR);
@@ -81,18 +119,20 @@ export const helpCommand = {
     // Header
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `# ${logoEmoji(guild)} ${APP_NAME} — Command Center\n${eHelp} Manage your profile, view stats, and flex — right from Discord.\n-# ${CATEGORIES.reduce((a, c) => a + c.commands.length, 0)} commands loaded`
+        `# ${logo} ${APP_NAME} — Command Center\n` +
+        `${eHelp} Manage your profile, view stats, and flex — right from Discord.\n` +
+        `-# ${totalCmds} commands loaded`
       )
     );
 
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
 
-    // Each command category as a text block
+    // Each command category as a text block with custom emoji
     for (let i = 0; i < CATEGORIES.length; i++) {
       const cat = CATEGORIES[i];
       const lines = cat.commands.map(c => `> \`${c.cmd}\` — ${c.desc}`).join("\n");
       container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`### ${cat.title}\n${lines}`)
+        new TextDisplayBuilder().setContent(`### ${cat.emoji} ${cat.title}\n${lines}`)
       );
 
       if (i < CATEGORIES.length - 1) {
@@ -117,7 +157,7 @@ export const helpCommand = {
 
     const dashSection = new SectionBuilder()
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ${eLogo} Manage your links, themes, badges & more`)
+        new TextDisplayBuilder().setContent(`-# ${eDash} Manage your links, themes, badges & more`)
       )
       .setButtonAccessory(
         new ButtonBuilder()
@@ -131,7 +171,7 @@ export const helpCommand = {
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `-# ${logoEmoji(guild)} ${BOT_FOOTER}`
+        `-# ${logo} ${BOT_FOOTER}`
       )
     );
 
