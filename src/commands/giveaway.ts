@@ -40,12 +40,17 @@ function buildGiveawayEmbed(g: {
   endsAt: number;
   hostId: string;
   entries: Map<string, number>;
-}): EmbedBuilder {
+}, guild: Guild | null | undefined): EmbedBuilder {
   const endsAtSec = Math.floor(g.endsAt / 1000);
-  const boosterLine = ROLES.BOOSTER || ROLES.PREMIUM
-    ? [ROLES.BOOSTER && `<@&${ROLES.BOOSTER}>`, ROLES.PREMIUM && `<@&${ROLES.PREMIUM}>`]
-        .filter(Boolean).join("  ")
-    : "*None configured*";
+
+  // Resolve the native "Server Booster" role dynamically — its ID differs per
+  // guild so a hardcoded fallback won't work.
+  const nativeBoosterRole = guild?.roles.premiumSubscriberRole;
+  const roleMentions = [
+    nativeBoosterRole && `<@&${nativeBoosterRole.id}>`,
+    ROLES.PREMIUM && `<@&${ROLES.PREMIUM}>`,
+  ].filter(Boolean);
+  const boosterLine = roleMentions.length > 0 ? roleMentions.join("  ") : "*None configured*";
 
   const lines = [
     `**Ends:** <t:${endsAtSec}:R> (<t:${endsAtSec}:f>)`,
@@ -87,7 +92,7 @@ export async function refreshGiveawayMessage(message: Message, giveawayId: strin
   if (!g) return;
   try {
     await message.edit({
-      embeds: [buildGiveawayEmbed(g)],
+      embeds: [buildGiveawayEmbed(g, message.guild)],
       components: [buildJoinRow(message.guild)],
     });
   } catch {}
@@ -165,7 +170,7 @@ export const giveawayCommand = {
       entries: new Map<string, number>(),
     };
 
-    const embed = buildGiveawayEmbed(giveawayState);
+    const embed = buildGiveawayEmbed(giveawayState, cmd.guild);
     const attachment = new AttachmentBuilder(LOGO_PATH, { name: LOGO_FILENAME });
 
     const msg = await channel.send({
@@ -218,8 +223,11 @@ export const giveawayCommand = {
 /** Returns the weight a member should have when joining (booster bonus). */
 export function memberEntryWeight(member: GuildMember | null | undefined): number {
   if (!member) return 1;
-  const hasBooster = ROLES.BOOSTER && member.roles.cache.has(ROLES.BOOSTER);
+  // Use the guild's native booster role (premiumSubscriberRole) — its ID is
+  // auto-generated per guild, so we can't rely on a hardcoded ID.
+  const nativeBoostRole = member.guild?.roles.premiumSubscriberRole;
+  const hasNativeBoost = nativeBoostRole ? member.roles.cache.has(nativeBoostRole.id) : false;
   const hasPremium = ROLES.PREMIUM && member.roles.cache.has(ROLES.PREMIUM);
-  const isBoosting = !!member.premiumSince; // native Discord boost
-  return (hasBooster || hasPremium || isBoosting) ? BOOSTER_WEIGHT : 1;
+  const isBoosting = !!member.premiumSince; // fallback check
+  return (hasNativeBoost || hasPremium || isBoosting) ? BOOSTER_WEIGHT : 1;
 }
