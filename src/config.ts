@@ -83,7 +83,9 @@ export const ROLES = {
   ADMIN: process.env.ROLE_ADMIN || "",
   PREMIUM: process.env.ROLE_PREMIUM || "",
   VERIFIED: process.env.ROLE_VERIFIED || "",
-  BOOSTER: process.env.ROLE_BOOSTER || "",
+  // Native Discord Server Booster role ID (hardcoded fallback so giveaway
+  // "Boosted Roles" mention resolves even when ROLE_BOOSTER env isn't set).
+  BOOSTER: process.env.ROLE_BOOSTER || "1499480513046646976",
   MEMBER: process.env.ROLE_MEMBER || "",
   MUTED: process.env.ROLE_MUTED || "",
 };

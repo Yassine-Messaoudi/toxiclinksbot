@@ -1,10 +1,11 @@
 import {
-  ChatInputCommandInteraction, GuildMember, Interaction, TextChannel, Message,
+  ChatInputCommandInteraction, GuildMember, Guild, Interaction, TextChannel, Message,
   ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder,
 } from "discord.js";
 import path from "path";
 import { isStaff } from "../utils/permissions";
 import { ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
+import { EMOJI_NAMES, guildEmojiObj } from "../utils/branding";
 import {
   BOT_COLOR, CHANNELS, ROLES, APP_NAME, DISCORD_INVITE, APP_DOMAIN, WARN_COLOR,
 } from "../config";
@@ -65,15 +66,19 @@ function buildGiveawayEmbed(g: {
     .setThumbnail(`attachment://${LOGO_FILENAME}`);
 }
 
-/** Single Join button row, matching the reference image. */
-function buildJoinRow(): ActionRowBuilder<ButtonBuilder> {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId("giveaway_join")
-      .setLabel("Join")
-      .setEmoji("🎉")
-      .setStyle(ButtonStyle.Primary),
-  );
+/**
+ * Single Join button row, matching the reference image.
+ * Style: Success (green). Emoji: custom `:giveaway_transparent:` server emoji,
+ * with a Unicode 🎉 fallback if the custom emoji isn't in the guild cache.
+ */
+function buildJoinRow(guild: Guild | null | undefined): ActionRowBuilder<ButtonBuilder> {
+  const customEmoji = guildEmojiObj(guild, EMOJI_NAMES.giveaway);
+  const btn = new ButtonBuilder()
+    .setCustomId("giveaway_join")
+    .setLabel("Join")
+    .setStyle(ButtonStyle.Success);
+  btn.setEmoji(customEmoji ?? "🎉");
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(btn);
 }
 
 /** Re-render the live entry count on the giveaway message. Fails silently. */
@@ -83,7 +88,7 @@ export async function refreshGiveawayMessage(message: Message, giveawayId: strin
   try {
     await message.edit({
       embeds: [buildGiveawayEmbed(g)],
-      components: [buildJoinRow()],
+      components: [buildJoinRow(message.guild)],
     });
   } catch {}
 }
@@ -165,7 +170,7 @@ export const giveawayCommand = {
 
     const msg = await channel.send({
       embeds: [embed],
-      components: [buildJoinRow()],
+      components: [buildJoinRow(cmd.guild)],
       files: [attachment],
     });
 

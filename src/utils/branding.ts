@@ -27,6 +27,7 @@ export const EMOJI_NAMES = {
   warn: "warn",
   verif: "verif",
   x: "X_",
+  giveaway: "giveaway_transparent",
 };
 
 /** Resolve a server emoji by name → `<:name:id>` string, or empty string if not found */
