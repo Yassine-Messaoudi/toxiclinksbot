@@ -5,7 +5,7 @@ import {
 } from "discord.js";
 import { PrismaClient } from "@prisma/client";
 import { CHANNELS, ROLES, BOT_COLOR, APP_URL, BOT_FOOTER, APP_NAME } from "../config";
-import { BANNER_GIF, EMOJI_NAMES, guildEmoji, guildEmojiObj, logoEmoji } from "../utils/branding";
+import { BANNER_GIF, EMOJI_NAMES, guildEmojiOr, logoEmoji } from "../utils/branding";
 import { logText } from "../utils/logger";
 
 const prisma = new PrismaClient();
@@ -56,11 +56,13 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   const createdDays = Math.floor((Date.now() - member.user.createdTimestamp) / 86400000);
   const avatarUrl = member.user.displayAvatarURL({ size: 512 });
   const guild = member.guild;
-  const logo = logoEmoji(guild);
-  const eWebsite = guildEmoji(guild, EMOJI_NAMES.website);
-  const eSupport = guildEmoji(guild, EMOJI_NAMES.needhelp);
-  const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
-  const eNote = guildEmoji(guild, EMOJI_NAMES.note);
+  // Unicode fallbacks ensure the message renders cleanly even when a custom
+  // emoji is missing from the guild cache (avoids awkward double-spaces).
+  const logo = logoEmoji(guild) || "\u{1F480}"; // 💀
+  const eWebsite = guildEmojiOr(guild, EMOJI_NAMES.website, "\u{1F310}"); // 🌐
+  const eSupport = guildEmojiOr(guild, EMOJI_NAMES.needhelp, "\u{1F4AC}"); // 💬
+  const eLogoNoBg = guildEmojiOr(guild, EMOJI_NAMES.logoNoBg, "\u{1F47E}"); // 👾
+  const eNote = guildEmojiOr(guild, EMOJI_NAMES.note, "\u{1F4DC}"); // 📜
 
   // ── Components V2: Welcome Container ──
   const container = new ContainerBuilder()
@@ -170,7 +172,7 @@ export async function handleGuildMemberAdd(member: GuildMember, client: Client) 
   // Footer
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# ${logoEmoji(guild)} ${APP_NAME} \u2022 ${BOT_FOOTER}`
+      `-# ${logo} ${APP_NAME} \u2022 ${BOT_FOOTER}`
     )
   );
 

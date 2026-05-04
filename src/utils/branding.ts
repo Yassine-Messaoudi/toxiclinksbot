@@ -36,6 +36,15 @@ export function guildEmoji(guild: Guild | null | undefined, name: string): strin
   return e ? `<:${e.name}:${e.id}>` : "";
 }
 
+/**
+ * Resolve a server emoji by name → `<:name:id>` string, or a Unicode fallback
+ * if not found. Use this in welcome/info panels so the message still renders
+ * cleanly when a custom emoji is missing or hasn't been cached yet.
+ */
+export function guildEmojiOr(guild: Guild | null | undefined, name: string, fallback: string): string {
+  return guildEmoji(guild, name) || fallback;
+}
+
 /** Resolve emoji object for button `.setEmoji()` → `{ id, name }` or undefined */
 export function guildEmojiObj(guild: Guild | null | undefined, name: string): { id: string; name: string } | undefined {
   if (!guild) return undefined;

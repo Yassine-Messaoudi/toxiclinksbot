@@ -1,5 +1,5 @@
-import { ButtonInteraction, EmbedBuilder, TextChannel, MessageFlags } from "discord.js";
-import { activeGiveaways } from "../commands/giveaway";
+import { ButtonInteraction, EmbedBuilder, GuildMember, TextChannel, MessageFlags } from "discord.js";
+import { activeGiveaways, memberEntryWeight, refreshGiveawayMessage } from "../commands/giveaway";
 import { activePolls } from "../commands/poll";
 import { activeScrapes } from "../commands/scrape";
 import { createTicket } from "../commands/ticket";
@@ -23,28 +23,30 @@ export async function handleButtonInteraction(interaction: ButtonInteraction) {
     return;
   }
 
-  // ── Giveaway buttons ──
-  if (id === "giveaway_enter") {
+  // ── Giveaway Join button ──
+  // Single "Join" button (toggles entry). Live-updates the embed's entry count
+  // and gives boosters/premium members a weighted bonus chance in the draw.
+  if (id === "giveaway_join") {
     const giveaway = activeGiveaways.get(interaction.message.id);
     if (!giveaway) {
       await interaction.reply({ embeds: [errorEmbed("This giveaway has ended.")], ephemeral: true });
       return;
     }
+    const member = interaction.member as GuildMember | null;
     if (giveaway.entries.has(interaction.user.id)) {
       giveaway.entries.delete(interaction.user.id);
       await interaction.reply({ embeds: [successEmbed("You left the giveaway.")], ephemeral: true });
     } else {
-      giveaway.entries.add(interaction.user.id);
-      await interaction.reply({ embeds: [successEmbed(`You entered the giveaway! (${giveaway.entries.size} entries)`)], ephemeral: true });
+      const weight = memberEntryWeight(member);
+      giveaway.entries.set(interaction.user.id, weight);
+      const bonusText = weight > 1 ? " (Booster Bonus applied!)" : "";
+      await interaction.reply({
+        embeds: [successEmbed(`You joined the giveaway!${bonusText} (${giveaway.entries.size} entries)`)],
+        ephemeral: true,
+      });
     }
-    return;
-  }
-
-  if (id === "giveaway_entries") {
-    const giveaway = activeGiveaways.get(interaction.message.id);
-    const count = giveaway?.entries.size || 0;
-    const eLb = guildEmoji(interaction.guild, EMOJI_NAMES.leaderboard);
-    await interaction.reply({ content: `${eLb} **${count}** entr${count === 1 ? "y" : "ies"} so far`, ephemeral: true });
+    // Live-update the original message so the Entries count reflects reality.
+    refreshGiveawayMessage(interaction.message, interaction.message.id).catch(() => {});
     return;
   }
 

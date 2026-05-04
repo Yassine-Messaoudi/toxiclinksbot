@@ -1,15 +1,26 @@
 import {
-  ChatInputCommandInteraction, GuildMember, Interaction, TextChannel,
-  ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags,
-  ContainerBuilder, TextDisplayBuilder, SeparatorBuilder,
-  MediaGalleryBuilder, MediaGalleryItemBuilder,
+  ChatInputCommandInteraction, GuildMember, Interaction, TextChannel, Message,
+  ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, AttachmentBuilder,
 } from "discord.js";
+import path from "path";
 import { isStaff } from "../utils/permissions";
 import { ephemeralErrorV2, ephemeralSuccessV2 } from "../utils/embeds";
-import { BOT_COLOR, CHANNELS, BOT_FOOTER, WARN_COLOR } from "../config";
-import { BANNER_GIF, EMOJI_NAMES, guildEmoji, logoEmoji } from "../utils/branding";
+import {
+  BOT_COLOR, CHANNELS, ROLES, APP_NAME, DISCORD_INVITE, APP_DOMAIN, WARN_COLOR,
+} from "../config";
 
-/** In-memory giveaway store (production would use DB/Redis) */
+/** Local path to the ToxicLinks logo used as giveaway thumbnail attachment */
+const LOGO_PATH = path.join(__dirname, "..", "..", "img", "logo.png");
+const LOGO_FILENAME = "logo.png";
+
+/** Booster bonus — boosters & premium get this many entry weights instead of 1 */
+const BOOSTER_WEIGHT = 2;
+
+/**
+ * In-memory giveaway store. `entries` is a weighted map so that boosters and
+ * premium members count more times in the winner draw. `1` = normal entry,
+ * `BOOSTER_WEIGHT` = booster/premium entry.
+ */
 export const activeGiveaways = new Map<string, {
   prize: string;
   winners: number;
@@ -17,8 +28,86 @@ export const activeGiveaways = new Map<string, {
   channelId: string;
   messageId: string;
   hostId: string;
-  entries: Set<string>;
+  hostDisplay: string;
+  entries: Map<string, number>;
 }>();
+
+/** Build the giveaway embed — simple EmbedBuilder to match the reference style. */
+function buildGiveawayEmbed(g: {
+  prize: string;
+  winners: number;
+  endsAt: number;
+  hostId: string;
+  entries: Map<string, number>;
+}): EmbedBuilder {
+  const endsAtSec = Math.floor(g.endsAt / 1000);
+  const boosterLine = ROLES.BOOSTER || ROLES.PREMIUM
+    ? [ROLES.BOOSTER && `<@&${ROLES.BOOSTER}>`, ROLES.PREMIUM && `<@&${ROLES.PREMIUM}>`]
+        .filter(Boolean).join("  ")
+    : "*None configured*";
+
+  const lines = [
+    `**Ends:** <t:${endsAtSec}:R> (<t:${endsAtSec}:f>)`,
+    `**Hosted by:** <@${g.hostId}>`,
+    `**Entries:** ${g.entries.size.toLocaleString()}`,
+    `**Winners:** ${g.winners}`,
+    "",
+    `**Boosted Roles (Booster Bonus)**`,
+    boosterLine,
+    "",
+    `${DISCORD_INVITE} | ${APP_DOMAIN}`,
+  ];
+
+  return new EmbedBuilder()
+    .setColor(BOT_COLOR)
+    .setTitle(`${APP_NAME} ${g.prize} Giveaway`)
+    .setDescription(lines.join("\n"))
+    .setThumbnail(`attachment://${LOGO_FILENAME}`);
+}
+
+/** Single Join button row, matching the reference image. */
+function buildJoinRow(): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId("giveaway_join")
+      .setLabel("Join")
+      .setEmoji("🎉")
+      .setStyle(ButtonStyle.Primary),
+  );
+}
+
+/** Re-render the live entry count on the giveaway message. Fails silently. */
+export async function refreshGiveawayMessage(message: Message, giveawayId: string) {
+  const g = activeGiveaways.get(giveawayId);
+  if (!g) return;
+  try {
+    await message.edit({
+      embeds: [buildGiveawayEmbed(g)],
+      components: [buildJoinRow()],
+    });
+  } catch {}
+}
+
+/** Pick N unique winners from the weighted entries map. */
+function pickWinners(entries: Map<string, number>, count: number): string[] {
+  if (entries.size === 0) return [];
+  // Expand weighted pool then draw unique users.
+  const pool: string[] = [];
+  for (const [id, weight] of entries) {
+    for (let i = 0; i < weight; i++) pool.push(id);
+  }
+  const chosen: string[] = [];
+  while (chosen.length < count && pool.length > 0) {
+    const idx = Math.floor(Math.random() * pool.length);
+    const winner = pool[idx];
+    chosen.push(winner);
+    // Remove ALL copies of that user from pool so they can't win twice.
+    for (let i = pool.length - 1; i >= 0; i--) {
+      if (pool[i] === winner) pool.splice(i, 1);
+    }
+  }
+  return chosen;
+}
 
 export const giveawayCommand = {
   name: "giveaway",
@@ -60,103 +149,57 @@ export const giveawayCommand = {
       return;
     }
 
-    const guild = cmd.guild;
-    const logo = logoEmoji(guild);
-    const eLogoNoBg = guildEmoji(guild, EMOJI_NAMES.logoNoBg);
-    const eShop = guildEmoji(guild, EMOJI_NAMES.shop);
-    const eLeaderboard = guildEmoji(guild, EMOJI_NAMES.leaderboard);
-
-    const container = new ContainerBuilder().setAccentColor(BOT_COLOR);
-
-    container.addMediaGalleryComponents(
-      new MediaGalleryBuilder().addItems(
-        new MediaGalleryItemBuilder().setURL(BANNER_GIF)
-      )
-    );
-
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        `# ${logo} GIVEAWAY\n` +
-        `> ${eShop} **Prize:** ${prize}\n` +
-        `> ${eLeaderboard} **Winners:** ${winners}\n` +
-        `> ${eLogoNoBg} **Ends:** <t:${Math.floor(endsAt / 1000)}:R>\n` +
-        `> ${eLogoNoBg} **Host:** ${cmd.user.displayName}\n\n` +
-        `Click below to **enter**!`
-      )
-    );
-
-    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId("giveaway_enter")
-        .setLabel("Enter Giveaway")
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId("giveaway_entries")
-        .setLabel("Entries")
-        .setStyle(ButtonStyle.Secondary),
-    );
-    container.addActionRowComponents(row);
-
-    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`)
-    );
-
-    const msg = await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
-
-    activeGiveaways.set(msg.id, {
+    const giveawayState = {
       prize,
       winners,
       endsAt,
       channelId: channel.id,
-      messageId: msg.id,
+      messageId: "", // filled after send
       hostId: cmd.user.id,
-      entries: new Set(),
+      hostDisplay: (member?.displayName || cmd.user.username),
+      entries: new Map<string, number>(),
+    };
+
+    const embed = buildGiveawayEmbed(giveawayState);
+    const attachment = new AttachmentBuilder(LOGO_PATH, { name: LOGO_FILENAME });
+
+    const msg = await channel.send({
+      embeds: [embed],
+      components: [buildJoinRow()],
+      files: [attachment],
     });
+
+    giveawayState.messageId = msg.id;
+    activeGiveaways.set(msg.id, giveawayState);
 
     // Schedule end
     setTimeout(async () => {
       const giveaway = activeGiveaways.get(msg.id);
       if (!giveaway) return;
 
-      const entriesArr = Array.from(giveaway.entries);
-      const winnerIds: string[] = [];
-      const copy = [...entriesArr];
-      for (let i = 0; i < Math.min(giveaway.winners, copy.length); i++) {
-        const idx = Math.floor(Math.random() * copy.length);
-        winnerIds.push(copy.splice(idx, 1)[0]);
-      }
-
+      const winnerIds = pickWinners(giveaway.entries, giveaway.winners);
       const winnerMentions = winnerIds.length > 0
-        ? winnerIds.map(id => `<@${id}>`).join(", ")
-        : "No valid entries";
+        ? winnerIds.map((id) => `<@${id}>`).join(", ")
+        : "*No valid entries*";
 
-      const endContainer = new ContainerBuilder().setAccentColor(WARN_COLOR);
-      endContainer.addMediaGalleryComponents(
-        new MediaGalleryBuilder().addItems(
-          new MediaGalleryItemBuilder().setURL(BANNER_GIF)
-        )
-      );
-      endContainer.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `# ${logo} GIVEAWAY ENDED\n` +
-          `> ${eShop} **Prize:** ${giveaway.prize}\n` +
-          `> ${eLeaderboard} **Winner(s):** ${winnerMentions}\n` +
-          `> ${eLogoNoBg} **Entries:** ${entriesArr.length}\n` +
-          `> ${eLogoNoBg} **Host:** <@${giveaway.hostId}>`
-        )
-      );
-      endContainer.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-      endContainer.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`-# ${logo} ${BOT_FOOTER}`)
-      );
+      const endsAtSec = Math.floor(giveaway.endsAt / 1000);
+      const endEmbed = new EmbedBuilder()
+        .setColor(WARN_COLOR)
+        .setTitle(`${APP_NAME} ${giveaway.prize} Giveaway — Ended`)
+        .setDescription([
+          `**Ended:** <t:${endsAtSec}:R>`,
+          `**Hosted by:** <@${giveaway.hostId}>`,
+          `**Entries:** ${giveaway.entries.size.toLocaleString()}`,
+          `**Winner${winnerIds.length === 1 ? "" : "s"}:** ${winnerMentions}`,
+          "",
+          `${DISCORD_INVITE} | ${APP_DOMAIN}`,
+        ].join("\n"))
+        .setThumbnail(`attachment://${LOGO_FILENAME}`);
 
       try {
-        await msg.edit({ components: [endContainer], flags: MessageFlags.IsComponentsV2 });
+        await msg.edit({ embeds: [endEmbed], components: [] });
         if (winnerIds.length > 0) {
-          await channel.send(`${logo} Congratulations ${winnerMentions}! You won **${giveaway.prize}**!`);
+          await channel.send(`🎉 Congratulations ${winnerMentions}! You won **${giveaway.prize}**!`);
         }
       } catch {}
 
@@ -166,3 +209,12 @@ export const giveawayCommand = {
     await cmd.reply(ephemeralSuccessV2(`Giveaway started in <#${channelId}>!`));
   },
 };
+
+/** Returns the weight a member should have when joining (booster bonus). */
+export function memberEntryWeight(member: GuildMember | null | undefined): number {
+  if (!member) return 1;
+  const hasBooster = ROLES.BOOSTER && member.roles.cache.has(ROLES.BOOSTER);
+  const hasPremium = ROLES.PREMIUM && member.roles.cache.has(ROLES.PREMIUM);
+  const isBoosting = !!member.premiumSince; // native Discord boost
+  return (hasBooster || hasPremium || isBoosting) ? BOOSTER_WEIGHT : 1;
+}

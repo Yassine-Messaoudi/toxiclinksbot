@@ -16,6 +16,10 @@ export const GOODBYE_COLOR = 0x8b0000;
 export const APP_URL = process.env.APP_URL || "https://toxiclinks.gg";
 export const APP_NAME = "ToxicLinks";
 export const BOT_FOOTER = "ToxicLinks • toxiclinks.xyz";
+/** Public Discord invite URL — shown in giveaway footer etc. */
+export const DISCORD_INVITE = process.env.DISCORD_INVITE || "discord.gg/toxiclinks";
+/** Bare domain (no scheme) used in giveaway-style footers */
+export const APP_DOMAIN = (process.env.APP_URL || "https://toxiclinks.gg").replace(/^https?:\/\//, "");
 
 /** Decorative line separators for embed descriptions */
 export const LINE = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
