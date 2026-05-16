@@ -34,6 +34,24 @@ export async function handlePresenceUpdate(
       details: activity.details,
       state: activity.state,
       url: activity.url,
+      emoji: activity.emoji
+        ? {
+            name: activity.emoji.name,
+            id: activity.emoji.id,
+            animated: activity.emoji.animated,
+          }
+        : null,
+      applicationId: activity.applicationId,
+      largeImageUrl: activity.assets?.largeImageURL() || null,
+      largeText: activity.assets?.largeText || null,
+      smallImageUrl: activity.assets?.smallImageURL() || null,
+      smallText: activity.assets?.smallText || null,
+      timestamps: activity.timestamps
+        ? {
+            start: activity.timestamps.start?.getTime() || null,
+            end: activity.timestamps.end?.getTime() || null,
+          }
+        : null,
       // Spotify data
       ...(activity.name === "Spotify" && {
         spotifyTrack: activity.details,
