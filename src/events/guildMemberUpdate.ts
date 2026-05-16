@@ -20,7 +20,7 @@ export async function handleGuildMemberUpdate(
 
   if (!wasBoosting && isBoosting) {
     await handleNewBoost(newMember, client);
-    await grantBoosterBadge(newMember.user.id, prisma);
+    await grantBoosterBadge(newMember.user.id, prisma, newMember.premiumSince ?? undefined);
   } else if (wasBoosting && !isBoosting) {
     await revokeBoosterBadge(newMember.user.id, prisma);
     await logText(`**${newMember.user.tag}** stopped boosting the server.`);
@@ -95,7 +95,7 @@ async function handleNewBoost(member: GuildMember, client: Client) {
 
 /* ── Booster badge helpers ── */
 
-async function grantBoosterBadge(discordId: string, prisma: PrismaClient) {
+async function grantBoosterBadge(discordId: string, prisma: PrismaClient, boostedSince?: Date) {
   try {
     const connection = await prisma.discordConnection.findUnique({
       where: { discordId },
@@ -117,8 +117,9 @@ async function grantBoosterBadge(discordId: string, prisma: PrismaClient) {
         type: "BOOSTER",
         label: "Server Booster",
         color: "#f47fff",
+        ...(boostedSince ? { grantedAt: boostedSince } : {}),
       },
-      update: {}, // already exists, no-op
+      update: boostedSince ? { grantedAt: boostedSince } : {},
     });
     console.log(`[Bot] Granted BOOSTER badge to user ${connection.userId} (discord: ${discordId})`);
   } catch (err) {
@@ -175,9 +176,20 @@ export async function syncAllBoosterBadges(guild: import("discord.js").Guild, pr
         });
         if (!existing) {
           await prisma.badge.create({
-            data: { userId, type: "BOOSTER", label: "Server Booster", color: "#f47fff" },
+            data: {
+              userId,
+              type: "BOOSTER",
+              label: "Server Booster",
+              color: "#f47fff",
+              ...(member.premiumSince ? { grantedAt: member.premiumSince } : {}),
+            },
           });
           granted++;
+        } else if (member.premiumSince && existing.grantedAt.getTime() !== member.premiumSince.getTime()) {
+          await prisma.badge.update({
+            where: { id: existing.id },
+            data: { grantedAt: member.premiumSince },
+          });
         }
       } else {
         // Revoke badge if present
