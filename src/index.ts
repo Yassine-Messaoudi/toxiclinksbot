@@ -130,6 +130,16 @@ client.once(Events.ClientReady, async (readyClient) => {
       syncAllBoosterBadges(guild, prisma).catch((err) =>
         console.error("[Bot] Booster badge startup sync failed:", err)
       );
+
+      // Seed Redis with any presences Discord gives us on startup, so profile
+      // pages can show status immediately instead of waiting for a change event.
+      if (redis) {
+        for (const presence of guild.presences.cache.values()) {
+          handlePresenceUpdate(null, presence, redis, prisma).catch((err) =>
+            console.warn("[Bot] Presence startup sync failed:", (err as Error).message)
+          );
+        }
+      }
     }
   }
 
