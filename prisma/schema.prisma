@@ -300,6 +300,7 @@ model DiscordConnection {
   autoSyncBanner     Boolean  @default(true)
   showPresence    Boolean  @default(true)
   showActivity    Boolean  @default(true)
+  showNitroBadge  Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
