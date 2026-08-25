@@ -8,7 +8,7 @@
 import { Guild } from "discord.js";
 
 /** Animated toxic skull banner — used on all major panels */
-export const BANNER_GIF = "https://res.cloudinary.com/db4mpxc2k/image/upload/v1777332752/toxic_skull_banner_dumql1.gif";
+export const BANNER_GIF = "https://scar-vault.com/backgrounds/scarvault-banner.gif";
 
 /** All custom emoji names used across the bot — must match server emoji names exactly */
 export const EMOJI_NAMES = {
@@ -57,3 +57,4 @@ export function guildEmojiObj(guild: Guild | null | undefined, name: string): { 
 export function logoEmoji(guild: Guild | null | undefined): string {
   return guildEmoji(guild, EMOJI_NAMES.logo);
 }
+
